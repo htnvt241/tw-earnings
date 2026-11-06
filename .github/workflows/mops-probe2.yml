@@ -1,0 +1,26 @@
+name: mops-probe2
+
+# 只能手動執行，不會自動排程，也不會修改任何檔案。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Probe MOPS (round 2)
+        run: python mops_probe2.py
+      - name: Save raw responses
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: mops-probe2-raw
+          path: probe_out/
+          if-no-files-found: ignore
