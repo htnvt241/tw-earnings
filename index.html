@@ -109,7 +109,7 @@ function render(){
   const msg=$('#msg');
   if(!rows.length){msg.hidden=false;msg.textContent=recs.length?'這個條件下沒有財報公告。':'還沒有資料，請先執行一次抓取。';$('#tb').innerHTML='';return}
   msg.hidden=true;
-  $('#tb').innerHTML=rows.map(x=>{const r=x.r,v=vals(r),det=openId===r.id;
+  $('#tb').innerHTML=rows.map(x=>{const r=x.r,v=vals(r),det=openId===r.id,wait=basis==='single'&&!r.q;
     return`<tr class="row" data-id="${r.id}"><td>${r.announced?r.announced.slice(5,16):'<span class="na">較早公告</span>'}</td>
 <td><b>${esc(r.name)}</b><span class="code">${r.code}</span><span class="tag">${r.market}${r.kind?'・'+r.kind:''}</span></td>
 <td>${r.year} Q${r.quarter}</td>
@@ -122,13 +122,14 @@ document.querySelectorAll('th').forEach(h=>{const f=()=>{const k=h.dataset.k;if(
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{basis=b.dataset.b;
   document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
 $('#date').onchange=render;$('#q').oninput=render;
-fetch('data/earnings.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{
+fetch('data/earnings.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{
   recs=j.records;recs.forEach(r=>idx[r.code+'|'+r.year+'|'+r.quarter]=r);
   const ds=[...new Set(recs.filter(r=>r.announced).map(r=>r.announced.slice(0,10)))].sort().reverse();
   $('#date').innerHTML=ds.map(d=>`<option value="${d}">${d.replace(/-/g,'/')}</option>`).join('')+(recs.some(r=>!r.announced)?'<option value="none">較早公告（無時間）</option>':'')+'<option value="all">全部日期</option>';
   $('#meta').textContent=`資料更新時間 ${j.updated_at}　累計 ${recs.length} 筆財報公告`;
-  render()}).catch(()=>{$('#meta').textContent='';const m=$('#msg');m.hidden=false;
-  m.textContent='讀不到 data/earnings.json。直接雙擊 index.html 開啟會失敗，請用 GitHub Pages 的網址開啟。'});
+  try{render()}catch(e){console.error(e);$('#meta').textContent='';const m=$('#msg');m.hidden=false;m.textContent='資料已讀取，但畫面產生時出錯：'+e.message}
+}).catch(e=>{console.error(e);$('#meta').textContent='';const m=$('#msg');m.hidden=false;
+  m.textContent='讀不到 data/earnings.json（'+e.message+'）。直接雙擊 index.html 開啟會失敗，請用 GitHub Pages 的網址開啟；也請確認儲存庫裡有 data/earnings.json。'});
 </script>
 </body>
 </html>
