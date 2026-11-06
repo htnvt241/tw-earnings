@@ -19,6 +19,10 @@ from pathlib import Path
 SOURCES = [
     ("上市", "https://openapi.twse.com.tw/v1/opendata/t187ap04_L"),
 ]
+# 綜合損益表（一般業）：涵蓋較早公告、但重大訊息已查不到的公司；沒有公告時間。
+INCOME_SOURCES = [
+    ("上市", "https://openapi.twse.com.tw/v1/opendata/t187ap06_L_ci"),
+]
 OUT = Path(__file__).resolve().parent / "data" / "earnings.json"
 TW = timezone(timedelta(hours=8))
 PERIOD = re.compile(
@@ -100,6 +104,33 @@ def parse(rec, market):
     }, None
 
 
+def parse_income(rec, market):
+    """損益表資料集（累計數字，沒有公告時間）。"""
+    try:
+        year, quarter = int(rec["年度"]) + 1911, int(rec["季別"])
+    except (KeyError, ValueError):
+        return None, f"{rec.get('公司代號')} 年度或季別異常"
+    code = str(rec.get("公司代號", "")).strip()
+    rev = num(str(rec.get("營業收入", "")))
+    if rev is None or quarter not in (1, 2, 3, 4):
+        return None, f"{code} 沒有營業收入數字"
+    gp = num(str(rec.get("營業毛利（毛損）淨額") or rec.get("營業毛利（毛損）") or ""))
+    return {
+        "id": f"{code}|{year}|{quarter}",
+        "code": code,
+        "name": str(rec.get("公司名稱", "")).strip(),
+        "market": market,
+        "announced": None,
+        "year": year,
+        "quarter": quarter,
+        "kind": "",
+        "subject": "",
+        "rev": rev,
+        "gp": gp,
+        "op": num(str(rec.get("營業利益（損失）", ""))),
+    }, None
+
+
 def add_single_quarter(records):
     """單季 = 本季累計 - 上季累計。找不到上季資料就留 None。"""
     by = {(r["code"], r["year"], r["quarter"]): r for r in records.values()}
@@ -120,19 +151,24 @@ def add_single_quarter(records):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--file", help="改讀本機 JSON 檔（視為上市公司資料）")
+    ap.add_argument("--file", help="改讀本機重大訊息 JSON 檔（視為上市公司資料）")
+    ap.add_argument("--income-file", help="改讀本機損益表 JSON 檔（視為上市公司資料）")
     args = ap.parse_args()
 
-    raw = []
-    if args.file:
-        raw.append(("上市", json.loads(Path(args.file).read_text(encoding="utf-8-sig"))))
-    else:
-        for market, url in SOURCES:
+    def load(local, sources):
+        if local:
+            return [("上市", json.loads(Path(local).read_text(encoding="utf-8-sig")))]
+        got = []
+        for market, url in sources:
             try:
-                raw.append((market, fetch(url)))
+                got.append((market, fetch(url)))
             except Exception as e:  # 單一來源失敗不影響其他來源
                 print(f"[警告] {market} 抓取失敗：{e}", file=sys.stderr)
-    if not raw:
+        return got
+
+    raw = load(args.file, SOURCES)
+    income = load(args.income_file, INCOME_SOURCES)
+    if not raw and not income:
         print("[錯誤] 沒有任何資料來源成功，不更新檔案。", file=sys.stderr)
         sys.exit(1)
 
@@ -151,14 +187,27 @@ def main():
             if not data:
                 continue
             old = records.get(data["id"])
-            if old is None or data["announced"] >= old["announced"]:  # 更正公告以最新為準
+            if old is None or data["announced"] >= (old["announced"] or ""):  # 更正公告以最新為準
+                new += old is None
+                records[data["id"]] = data
+
+    for market, rows in income:  # 損益表只補「重大訊息沒有的」，有公告時間的資料優先
+        for rec in rows:
+            data, err = parse_income(rec, market)
+            if err:
+                skipped += 1
+                print(f"[略過] {err}", file=sys.stderr)
+            if not data:
+                continue
+            old = records.get(data["id"])
+            if old is None or old["announced"] is None:
                 new += old is None
                 records[data["id"]] = data
 
     add_single_quarter(records)
     out = {
         "updated_at": datetime.now(TW).strftime("%Y-%m-%d %H:%M"),
-        "records": sorted(records.values(), key=lambda r: r["announced"], reverse=True),
+        "records": sorted(records.values(), key=lambda r: r["announced"] or "", reverse=True),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
