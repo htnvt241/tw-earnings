@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>財報公告追蹤｜毛利率與營業利益率</title>
+<style>
+:root{--bg:#f2f4f6;--panel:#fff;--ink:#16212b;--sub:#5b6875;--line:#dfe4e9;--bar:#2f6f8f;--bar-bg:#e6ecf0;--up:#c62828;--down:#1b7f3b;--hover:#f6f8fa}
+@media (prefers-color-scheme:dark){:root{--bg:#10161c;--panel:#18212a;--ink:#e8edf1;--sub:#93a1ad;--line:#2a3640;--bar:#6bb3d3;--bar-bg:#263540;--up:#ff6b6b;--down:#4cc67a;--hover:#1d2832}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px;font-weight:600;margin:0}
+.sub{color:var(--sub);font-size:13px;margin:2px 0 18px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+select,input[type=search]{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;height:36px}
+input[type=search]{flex:1;min-width:160px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{font:inherit;color:var(--sub);background:none;border:0;padding:6px 14px;height:34px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+button:focus-visible,select:focus-visible,input:focus-visible,th:focus-visible{outline:2px solid var(--bar);outline-offset:2px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0 0 14px}
+.stats div{font-size:13px;color:var(--sub)}
+.stats b{display:block;font-size:24px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;min-width:760px;font-variant-numeric:tabular-nums}
+th{font-size:13px;font-weight:500;color:var(--sub);text-align:left;padding:10px 12px;cursor:pointer;white-space:nowrap;user-select:none}
+th.r,td.r{text-align:right}
+td{padding:10px 12px;border-top:1px solid var(--line)}
+tr.row{cursor:pointer}
+tr.row:hover{background:var(--hover)}
+.code{color:var(--sub);margin-left:4px}
+.tag{font-size:12px;color:var(--sub);margin-left:6px}
+.m{display:inline-block;min-width:54px;text-align:right}
+.track{display:inline-block;width:56px;height:6px;margin-left:8px;border-radius:3px;background:var(--bar-bg);vertical-align:middle;overflow:hidden}
+.track i{display:block;height:100%;background:var(--bar)}
+.up{color:var(--up)}.down{color:var(--down)}.na{color:var(--sub)}
+.detail td{background:var(--hover);font-size:13px;color:var(--sub)}
+.detail span{margin-right:22px;white-space:nowrap}
+.msg{padding:28px 16px;text-align:center;color:var(--sub)}
+.note{font-size:12px;color:var(--sub);margin-top:10px}
+.qonly{display:none}
+.single .qonly{display:table-cell}
+</style>
+</head>
+<body>
+<main>
+  <h1>財報公告追蹤</h1>
+  <p class="sub" id="meta">載入中…</p>
+  <div class="bar">
+    <label>公告日期 <select id="date"></select></label>
+    <div class="seg" role="group" aria-label="數字基準">
+      <button type="button" data-b="cum" aria-pressed="true">累計</button>
+      <button type="button" data-b="single" aria-pressed="false">單季</button>
+    </div>
+    <input type="search" id="q" placeholder="搜尋代號或公司名稱" aria-label="搜尋">
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="wrap">
+    <table id="tbl">
+      <thead><tr>
+        <th data-k="announced" tabindex="0">公告時間</th>
+        <th data-k="code" tabindex="0">公司</th>
+        <th data-k="period" tabindex="0">財報期間</th>
+        <th data-k="gm" class="r" tabindex="0">毛利率</th>
+        <th data-k="om" class="r" tabindex="0">營業利益率</th>
+        <th data-k="yoy" class="r" tabindex="0">較去年同期</th>
+        <th data-k="qoq" class="r qonly" tabindex="0">較上季</th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+    <div class="msg" id="msg" hidden></div>
+  </div>
+  <p class="note">累計是年初到該季末的合計；單季是本季累計減上季累計，需要有上季公告資料才算得出來。「較去年同期」「較上季」是毛利率的百分點變化，紅色上升、綠色下降。資料來源：證交所 OpenAPI 重大訊息。</p>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+let recs=[],idx={},basis='cum',sk='announced',sd=-1,openId=null;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct=v=>v==null?'—':v.toFixed(1)+'%';
+const vals=r=>basis==='cum'?{rev:r.rev,gp:r.gp,op:r.op}:r.q;
+function mg(r){const v=r&&vals(r);if(!v||!v.rev||v.rev<=0)return{gm:null,om:null};
+  return{gm:v.gp==null?null:v.gp/v.rev*100,om:v.op==null?null:v.op/v.rev*100}}
+function diff(a,b){return a==null||b==null?null:a-b}
+function build(r){
+  const m=mg(r),py=idx[r.code+'|'+(r.year-1)+'|'+r.quarter];
+  let y=r.year,q=r.quarter-1;if(q<1){q=4;y--}
+  const pq=basis==='single'?idx[r.code+'|'+y+'|'+q]:null;
+  return{r,gm:m.gm,om:m.om,yoy:diff(m.gm,mg(py).gm),qoq:pq?diff(m.gm,mg(pq).gm):null,
+    period:r.year*10+r.quarter}}
+function chg(v){if(v==null)return'<span class="na">—</span>';
+  return`<span class="${v>0?'up':v<0?'down':'na'}">${v>0?'+':''}${v.toFixed(1)}</span>`}
+function cell(v){if(v==null)return'<span class="na">—</span>';
+  const w=Math.max(0,Math.min(v,60))/60*100;
+  return`<span class="m">${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
+function render(){
+  const d=$('#date').value,s=$('#q').value.trim();
+  let rows=recs.filter(r=>(d==='all'||r.announced.startsWith(d))&&(!s||r.code.includes(s)||r.name.includes(s))).map(build);
+  rows.sort((a,b)=>{let x,y;
+    if(sk==='announced'){x=a.r.announced;y=b.r.announced}
+    else if(sk==='code'){x=a.r.code;y=b.r.code}
+    else{x=a[sk];y=b[sk]}
+    if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
+    return(x>y?1:x<y?-1:0)*sd});
+  $('#tbl').className=basis==='single'?'single':'';
+  const avg=k=>{const a=rows.map(x=>x[k]).filter(v=>v!=null);return a.length?a.reduce((p,c)=>p+c,0)/a.length:null};
+  const up=rows.filter(x=>x.yoy!=null&&x.yoy>0).length,have=rows.filter(x=>x.yoy!=null).length;
+  $('#stats').innerHTML=`<div>公告家數<b>${rows.length}</b></div><div>平均毛利率<b>${pct(avg('gm'))}</b></div><div>平均營業利益率<b>${pct(avg('om'))}</b></div><div>毛利率高於去年同期<b>${have?up+' / '+have:'—'}</b></div>`;
+  const msg=$('#msg');
+  if(!rows.length){msg.hidden=false;msg.textContent=recs.length?'這個條件下沒有財報公告。':'還沒有資料，請先執行一次抓取。';$('#tb').innerHTML='';return}
+  msg.hidden=true;
+  $('#tb').innerHTML=rows.map(x=>{const r=x.r,v=vals(r),det=openId===r.id;
+    return`<tr class="row" data-id="${r.id}"><td>${r.announced.slice(5,16)}</td>
+<td><b>${esc(r.name)}</b><span class="code">${r.code}</span><span class="tag">${r.market}${r.kind?'・'+r.kind:''}</span></td>
+<td>${r.year} Q${r.quarter}</td>
+<td class="r">${r.gp==null&&basis==='cum'?'<span class="na">不適用</span>':cell(x.gm)}</td>
+<td class="r">${cell(x.om)}</td><td class="r">${chg(x.yoy)}</td><td class="r qonly">${chg(x.qoq)}</td></tr>`+
+(det?`<tr class="detail"><td colspan="7">${v?`<span>營業收入 ${v.rev==null?'—':v.rev.toLocaleString()}</span><span>營業毛利 ${v.gp==null?'—':v.gp.toLocaleString()}</span><span>營業利益 ${v.op==null?'—':v.op.toLocaleString()}</span><span>單位：仟元（${basis==='cum'?'年初累計':'單季'}）</span>`:'單季資料需要上一季公告，目前尚無。'}<br>${esc(r.subject)}</td></tr>`:'')}).join('')}
+$('#tb').onclick=e=>{const t=e.target.closest('tr.row');if(!t)return;openId=openId===t.dataset.id?null:t.dataset.id;render()};
+document.querySelectorAll('th').forEach(h=>{const f=()=>{const k=h.dataset.k;if(sk===k)sd=-sd;else{sk=k;sd=k==='code'?1:-1}render()};
+  h.onclick=f;h.onkeydown=e=>{if(e.key==='Enter')f()}});
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{basis=b.dataset.b;
+  document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
+$('#date').onchange=render;$('#q').oninput=render;
+fetch('data/earnings.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{
+  recs=j.records;recs.forEach(r=>idx[r.code+'|'+r.year+'|'+r.quarter]=r);
+  const ds=[...new Set(recs.map(r=>r.announced.slice(0,10)))].sort().reverse();
+  $('#date').innerHTML=ds.map(d=>`<option value="${d}">${d.replace(/-/g,'/')}</option>`).join('')+'<option value="all">全部日期</option>';
+  $('#meta').textContent=`資料更新時間 ${j.updated_at}　累計 ${recs.length} 筆財報公告`;
+  render()}).catch(()=>{$('#meta').textContent='';const m=$('#msg');m.hidden=false;
+  m.textContent='讀不到 data/earnings.json。直接雙擊 index.html 開啟會失敗，請用 GitHub Pages 的網址開啟。'});
+</script>
+</body>
+</html>
