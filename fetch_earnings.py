@@ -15,18 +15,20 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-# (市場名稱, 網址)。上櫃的端點尚未確認，確認後加在這裡即可。
+# (市場名稱, 網址)。重大訊息：上市（證交所）、上櫃（櫃買中心）。
 SOURCES = [
     ("上市", "https://openapi.twse.com.tw/v1/opendata/t187ap04_L"),
+    ("上櫃", "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap04_O"),
 ]
 # 綜合損益表（一般業）：涵蓋較早公告、但重大訊息已查不到的公司；沒有公告時間。
 INCOME_SOURCES = [
     ("上市", "https://openapi.twse.com.tw/v1/opendata/t187ap06_L_ci"),
+    ("上櫃", "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap06_O_ci"),
 ]
 OUT = Path(__file__).resolve().parent / "data" / "earnings.json"
 TW = timezone(timedelta(hours=8))
 PERIOD = re.compile(
-    r"(\d{2,3})/(\d{1,2})/(\d{1,2})\s*[~～\-－–—]\s*(\d{2,3})/(\d{1,2})/(\d{1,2})"
+    r"(\d{2,3})/(\d{1,2})/(\d{1,2})\s*/?\s*[~～\-－–—]\s*(\d{2,3})/(\d{1,2})/(\d{1,2})"
 )
 
 
@@ -35,7 +37,16 @@ def fetch(url):
         url, headers={"accept": "application/json", "user-agent": "tw-earnings/1.0"}
     )
     with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8-sig"))
+        hdr = {k: r.headers.get(k) for k in ("Last-Modified", "ETag", "Date", "Age") if r.headers.get(k)}
+        return json.loads(r.read().decode("utf-8-sig")), hdr
+
+
+def g(rec, *keys):
+    """上市與上櫃欄位名稱不同（公司代號／SecuritiesCompanyCode），依序取第一個有值的。"""
+    for k in keys:
+        if rec.get(k) not in (None, ""):
+            return rec[k]
+    return ""
 
 
 def roc_date(s):
@@ -71,8 +82,8 @@ def parse(rec, market):
     """回傳 (資料, 失敗原因)。非財報公告回傳 (None, None)。"""
     if str(rec.get("符合條款", "")).strip() != "第31款":
         return None, None
-    code = str(rec.get("公司代號", "")).strip()
-    subject = " ".join(str(rec.get("主旨 ", rec.get("主旨", ""))).split())  # 欄位名稱尾端有空格
+    code = str(g(rec, "公司代號", "SecuritiesCompanyCode")).strip()
+    subject = " ".join(str(g(rec, "主旨 ", "主旨")).split())  # 上市的欄位名稱尾端有空格
     body = str(rec.get("說明", ""))
     pm = PERIOD.search(body)
     if not pm:
@@ -91,7 +102,7 @@ def parse(rec, market):
     return {
         "id": f"{code}|{year}|{quarter}",
         "code": code,
-        "name": str(rec.get("公司名稱", "")).strip(),
+        "name": str(g(rec, "公司名稱", "CompanyName")).strip(),
         "market": market,
         "announced": f"{date} {clock(rec.get('發言時間'))}",
         "year": year,
@@ -106,19 +117,20 @@ def parse(rec, market):
 
 def parse_income(rec, market):
     """損益表資料集（累計數字，沒有公告時間）。"""
+    code = str(g(rec, "公司代號", "SecuritiesCompanyCode")).strip()
     try:
-        year, quarter = int(rec["年度"]) + 1911, int(rec["季別"])
-    except (KeyError, ValueError):
-        return None, f"{rec.get('公司代號')} 年度或季別異常"
-    code = str(rec.get("公司代號", "")).strip()
+        year, quarter = int(g(rec, "年度", "Year")) + 1911, int(g(rec, "季別", "Season"))
+    except ValueError:
+        return None, f"{code} 年度或季別異常"
     rev = num(str(rec.get("營業收入", "")))
     if rev is None or quarter not in (1, 2, 3, 4):
         return None, f"{code} 沒有營業收入數字"
-    gp = num(str(rec.get("營業毛利（毛損）淨額") or rec.get("營業毛利（毛損）") or ""))
+    # 官方「營益分析」的毛利率用「營業毛利（毛損）淨額」，這裡跟官方一致；沒有淨額才用毛利
+    gp = num(str(g(rec, "營業毛利（毛損）淨額", "營業毛利（毛損）")))
     return {
         "id": f"{code}|{year}|{quarter}",
         "code": code,
-        "name": str(rec.get("公司名稱", "")).strip(),
+        "name": str(g(rec, "公司名稱", "CompanyName")).strip(),
         "market": market,
         "announced": None,
         "year": year,
@@ -151,30 +163,51 @@ def add_single_quarter(records):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--file", help="改讀本機重大訊息 JSON 檔（視為上市公司資料）")
-    ap.add_argument("--income-file", help="改讀本機損益表 JSON 檔（視為上市公司資料）")
+    ap.add_argument("--file", help="改讀本機上市重大訊息 JSON 檔")
+    ap.add_argument("--income-file", help="改讀本機上市損益表 JSON 檔")
+    ap.add_argument("--tpex-file", help="改讀本機上櫃重大訊息 JSON 檔")
+    ap.add_argument("--tpex-income-file", help="改讀本機上櫃損益表 JSON 檔")
     args = ap.parse_args()
 
-    def load(local, sources):
-        if local:
-            return [("上市", json.loads(Path(local).read_text(encoding="utf-8-sig")))]
+    metas = []  # 記錄每個來源的更新線索，用來推測官方何時更新
+
+    def note(label, market, rows, hdr):
+        newest = lambda k: max((r[k] for r in rows if r.get(k)), default=None)
+        metas.append({
+            "source": f"{market}{label}", "rows": len(rows), "headers": hdr,
+            "generated": roc_date(newest("出表日期") or newest("Date") or ""),   # 出表日期：官方產出這份資料的日期
+            "latest_publish": roc_date(newest("發言日期") or ""),  # 資料裡最新的發言日期
+        })
+
+    def load(local, sources, label):
         got = []
+        if any(local.values()):  # 測試用：只讀指定的本機檔
+            for market, path in local.items():
+                if path:
+                    rows = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+                    note(label, market, rows, {})
+                    got.append((market, rows))
+            return got
         for market, url in sources:
             try:
-                got.append((market, fetch(url)))
+                rows, hdr = fetch(url)
+                note(label, market, rows, hdr)
+                got.append((market, rows))
             except Exception as e:  # 單一來源失敗不影響其他來源
                 print(f"[警告] {market} 抓取失敗：{e}", file=sys.stderr)
         return got
 
-    raw = load(args.file, SOURCES)
-    income = load(args.income_file, INCOME_SOURCES)
+    raw = load({"上市": args.file, "上櫃": args.tpex_file}, SOURCES, "重大訊息")
+    income = load({"上市": args.income_file, "上櫃": args.tpex_income_file}, INCOME_SOURCES, "損益表")
     if not raw and not income:
         print("[錯誤] 沒有任何資料來源成功，不更新檔案。", file=sys.stderr)
         sys.exit(1)
 
-    records = {}
+    records, old_log = {}, []
     if OUT.exists():
-        for r in json.loads(OUT.read_text(encoding="utf-8")).get("records", []):
+        prev = json.loads(OUT.read_text(encoding="utf-8"))
+        old_log = prev.get("log", [])
+        for r in prev.get("records", []):
             records[r["id"]] = r
 
     new = skipped = 0
@@ -203,10 +236,13 @@ def main():
             if old is None or old["announced"] is None:
                 new += old is None
                 records[data["id"]] = data
+            elif data["gp"] is not None:
+                old["gp"] = data["gp"]  # 損益表是正式數字（毛利為淨額），蓋掉公告時的初步毛利
 
     add_single_quarter(records)
     out = {
         "updated_at": datetime.now(TW).strftime("%Y-%m-%d %H:%M"),
+        "log": (old_log + [{"run_at": datetime.now(TW).strftime("%Y-%m-%d %H:%M"), "sources": metas}])[-60:],
         "records": sorted(records.values(), key=lambda r: r["announced"] or "", reverse=True),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
