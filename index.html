@@ -71,7 +71,7 @@ tr.row:hover{background:var(--hover)}
     </table>
     <div class="msg" id="msg" hidden></div>
   </div>
-  <p class="note">累計是年初到該季末的合計；單季是本季累計減上季累計，需要有上季公告資料才算得出來。「較去年同期」「較上季」是毛利率的百分點變化，紅色上升、綠色下降。資料來源：證交所 OpenAPI 重大訊息。</p>
+  <p class="note">累計是年初到該季末的合計；單季是本季累計減上季累計，需要有上季公告資料才算得出來。「較去年同期」「較上季」是毛利率的百分點變化，紅色上升、綠色下降。「較早公告」是重大訊息已查不到、改由損益表補上的公司，沒有公告時間。資料來源：證交所 OpenAPI 重大訊息與綜合損益表。</p>
 </main>
 <script>
 const $=s=>document.querySelector(s);
@@ -95,7 +95,7 @@ function cell(v){if(v==null)return'<span class="na">—</span>';
   return`<span class="m">${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
 function render(){
   const d=$('#date').value,s=$('#q').value.trim();
-  let rows=recs.filter(r=>(d==='all'||r.announced.startsWith(d))&&(!s||r.code.includes(s)||r.name.includes(s))).map(build);
+  let rows=recs.filter(r=>(d==='all'||(d==='none'?!r.announced:r.announced&&r.announced.startsWith(d)))&&(!s||r.code.includes(s)||r.name.includes(s))).map(build);
   rows.sort((a,b)=>{let x,y;
     if(sk==='announced'){x=a.r.announced;y=b.r.announced}
     else if(sk==='code'){x=a.r.code;y=b.r.code}
@@ -110,11 +110,11 @@ function render(){
   if(!rows.length){msg.hidden=false;msg.textContent=recs.length?'這個條件下沒有財報公告。':'還沒有資料，請先執行一次抓取。';$('#tb').innerHTML='';return}
   msg.hidden=true;
   $('#tb').innerHTML=rows.map(x=>{const r=x.r,v=vals(r),det=openId===r.id;
-    return`<tr class="row" data-id="${r.id}"><td>${r.announced.slice(5,16)}</td>
+    return`<tr class="row" data-id="${r.id}"><td>${r.announced?r.announced.slice(5,16):'<span class="na">較早公告</span>'}</td>
 <td><b>${esc(r.name)}</b><span class="code">${r.code}</span><span class="tag">${r.market}${r.kind?'・'+r.kind:''}</span></td>
 <td>${r.year} Q${r.quarter}</td>
-<td class="r">${r.gp==null&&basis==='cum'?'<span class="na">不適用</span>':cell(x.gm)}</td>
-<td class="r">${cell(x.om)}</td><td class="r">${chg(x.yoy)}</td><td class="r qonly">${chg(x.qoq)}</td></tr>`+
+<td class="r">${wait?'<span class="na">待上季資料</span>':(v&&v.gp==null?'<span class="na">不適用</span>':cell(x.gm))}</td>
+<td class="r">${wait?'<span class="na">—</span>':cell(x.om)}</td><td class="r">${chg(x.yoy)}</td><td class="r qonly">${chg(x.qoq)}</td></tr>`+
 (det?`<tr class="detail"><td colspan="7">${v?`<span>營業收入 ${v.rev==null?'—':v.rev.toLocaleString()}</span><span>營業毛利 ${v.gp==null?'—':v.gp.toLocaleString()}</span><span>營業利益 ${v.op==null?'—':v.op.toLocaleString()}</span><span>單位：仟元（${basis==='cum'?'年初累計':'單季'}）</span>`:'單季資料需要上一季公告，目前尚無。'}<br>${esc(r.subject)}</td></tr>`:'')}).join('')}
 $('#tb').onclick=e=>{const t=e.target.closest('tr.row');if(!t)return;openId=openId===t.dataset.id?null:t.dataset.id;render()};
 document.querySelectorAll('th').forEach(h=>{const f=()=>{const k=h.dataset.k;if(sk===k)sd=-sd;else{sk=k;sd=k==='code'?1:-1}render()};
@@ -124,8 +124,8 @@ document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{basis=b.datas
 $('#date').onchange=render;$('#q').oninput=render;
 fetch('data/earnings.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{
   recs=j.records;recs.forEach(r=>idx[r.code+'|'+r.year+'|'+r.quarter]=r);
-  const ds=[...new Set(recs.map(r=>r.announced.slice(0,10)))].sort().reverse();
-  $('#date').innerHTML=ds.map(d=>`<option value="${d}">${d.replace(/-/g,'/')}</option>`).join('')+'<option value="all">全部日期</option>';
+  const ds=[...new Set(recs.filter(r=>r.announced).map(r=>r.announced.slice(0,10)))].sort().reverse();
+  $('#date').innerHTML=ds.map(d=>`<option value="${d}">${d.replace(/-/g,'/')}</option>`).join('')+(recs.some(r=>!r.announced)?'<option value="none">較早公告（無時間）</option>':'')+'<option value="all">全部日期</option>';
   $('#meta').textContent=`資料更新時間 ${j.updated_at}　累計 ${recs.length} 筆財報公告`;
   render()}).catch(()=>{$('#meta').textContent='';const m=$('#msg');m.hidden=false;
   m.textContent='讀不到 data/earnings.json。直接雙擊 index.html 開啟會失敗，請用 GitHub Pages 的網址開啟。'});
