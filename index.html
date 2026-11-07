@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>財報公告追蹤｜毛利率與營業利益率</title>
 <style>
-:root{--bg:#f2f4f6;--panel:#fff;--ink:#16212b;--sub:#5b6875;--line:#dfe4e9;--bar:#2f6f8f;--bar-bg:#e6ecf0;--up:#c62828;--down:#1b7f3b;--hover:#f6f8fa}
-@media (prefers-color-scheme:dark){:root{--bg:#10161c;--panel:#18212a;--ink:#e8edf1;--sub:#93a1ad;--line:#2a3640;--bar:#6bb3d3;--bar-bg:#263540;--up:#ff6b6b;--down:#4cc67a;--hover:#1d2832}}
+:root{--cy:#e2b100;--co:#f08a24;--cr:#d62828;--cb:#2f6fe4;--cg:#0a6b46;--cl:#2ecc71;--ln1:#7c3aed;--ln2:#64748b;--bg:#f2f4f6;--panel:#fff;--ink:#16212b;--sub:#5b6875;--line:#dfe4e9;--bar:#2f6f8f;--bar-bg:#e6ecf0;--up:#c62828;--down:#1b7f3b;--hover:#f6f8fa}
+@media (prefers-color-scheme:dark){:root{--cy:#ffd43b;--co:#ffa94d;--cr:#ff6b6b;--cb:#74a9ff;--cg:#3fbf8f;--cl:#69f0ae;--ln1:#a78bfa;--ln2:#94a3b8;--bg:#10161c;--panel:#18212a;--ink:#e8edf1;--sub:#93a1ad;--line:#2a3640;--bar:#6bb3d3;--bar-bg:#263540;--up:#ff6b6b;--down:#4cc67a;--hover:#1d2832}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
 main{max-width:1000px;margin:0 auto;padding:24px 16px 48px}
@@ -23,7 +23,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,th:focus-visible{o
 .stats div{font-size:13px;color:var(--sub)}
 .stats b{display:block;font-size:24px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
-table{width:100%;border-collapse:collapse;min-width:760px;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;min-width:860px;font-variant-numeric:tabular-nums}
 th{font-size:13px;font-weight:500;color:var(--sub);text-align:left;padding:10px 12px;cursor:pointer;white-space:nowrap;user-select:none}
 th.r,td.r{text-align:right}
 td{padding:10px 12px;border-top:1px solid var(--line)}
@@ -37,6 +37,20 @@ tr.row:hover{background:var(--hover)}
 .up{color:var(--up)}.down{color:var(--down)}.na{color:var(--sub)}
 .detail td{background:var(--hover);font-size:13px;color:var(--sub)}
 .detail span{margin-right:22px;white-space:nowrap}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:2.5px solid var(--dc);margin:0 2px;vertical-align:middle;box-sizing:border-box;background:transparent}
+.dot.s{background:var(--dc)}.dy{--dc:var(--cy)}.do{--dc:var(--co)}.dr{--dc:var(--cr)}.db{--dc:var(--cb)}.dg{--dc:var(--cg)}.dl{--dc:var(--cl)}
+td.mk,th.mk{text-align:center;padding-left:6px;padding-right:6px;white-space:nowrap}
+.ico{border:0;background:none;padding:2px 4px;margin-left:6px;cursor:pointer;color:var(--sub);vertical-align:middle;border-radius:4px}
+.ico:hover,.ico[aria-pressed=true]{color:var(--bar);background:var(--hover)}
+.win{position:fixed;display:flex;flex-direction:column;min-width:300px;min-height:190px;resize:both;overflow:hidden;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.28)}
+.wh{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px 6px 12px;background:var(--hover);border-bottom:1px solid var(--line);cursor:move;font-size:13px;user-select:none;touch-action:none}
+.x{border:0;background:none;color:var(--sub);font-size:20px;line-height:1;width:28px;height:26px;border-radius:4px;cursor:pointer}
+.x:hover{background:var(--cr);color:#fff}
+.wb{flex:1;min-height:0;padding:4px 6px}.wb svg{width:100%;height:100%;display:block}
+.wb text{fill:var(--sub);font-size:11px}.wb .grid{stroke:var(--line);stroke-width:1}.wb .zero{stroke:var(--sub);stroke-dasharray:3 3}
+.wb .l1{stroke:var(--ln1)}.wb .l2{stroke:var(--ln2)}.wb path.l1,.wb path.l2{fill:none;stroke-width:2.2}
+.wb circle.l1{fill:var(--ln1)}.wb circle.l2{fill:var(--ln2)}.wb .ringH{fill:none;stroke:var(--cr);stroke-width:2}.wb .ringL{fill:none;stroke:var(--cg);stroke-width:2}
+@media(max-width:720px){.win{left:0!important;right:0;top:auto!important;bottom:0;width:100%!important;height:56vh!important;resize:none;border-radius:10px 10px 0 0}.wh{cursor:default}}
 .msg{padding:28px 16px;text-align:center;color:var(--sub)}
 .note{font-size:12px;color:var(--sub);margin-top:10px}
 </style>
@@ -47,6 +61,7 @@ tr.row:hover{background:var(--hover)}
   <p class="sub" id="meta">載入中…</p>
   <div class="bar">
     <label>財報期間 <select id="date"></select></label>
+    <label>新高低 <select id="hi"><option value="all">全部</option><option value="gH">毛利率新高</option><option value="oH">營益率新高</option><option value="bH">兩率新高</option><option value="gL">毛利率新低</option><option value="oL">營益率新低</option><option value="bL">兩率新低</option></select></label>
     <div class="seg" role="group" aria-label="數字基準">
       <button type="button" data-b="single" aria-pressed="true">單季</button>
       <button type="button" data-b="cum" aria-pressed="false">累計</button>
@@ -58,6 +73,7 @@ tr.row:hover{background:var(--hover)}
     <table id="tbl">
       <thead><tr>
         <th data-k="announced" tabindex="0">公告時間</th>
+        <th data-k="mk" class="mk" tabindex="0" title="近8季（含當季）創新高／新低標記，點可排序">毛/營</th>
         <th data-k="code" tabindex="0">公司</th>
         <th data-k="gm" class="r" tabindex="0">毛利率</th>
         <th data-k="om" class="r" tabindex="0">營業利益率</th>
@@ -68,11 +84,11 @@ tr.row:hover{background:var(--hover)}
     </table>
     <div class="msg" id="msg" hidden></div>
   </div>
-  <p class="note">單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
+  <p class="note">「毛/營」欄是近 8 季（含當季）的新高／新低標記，以單季數字比較，當季須嚴格高於（低於）前 7 季，8 季資料齊全才判斷，與單季／累計切換無關，金融保險業不判斷。第 1 個是毛利率、第 2 個是營業利益率，兩率同向時合併成一個實心圓：<span class="dot dy"></span>毛利率新高 <span class="dot do"></span>營益率新高 <span class="dot dr s"></span>兩率新高 <span class="dot db"></span>毛利率新低 <span class="dot dg"></span>營益率新低 <span class="dot dl s"></span>兩率新低。點公司旁的折線圖示開啟近 8 季趨勢圖，可拖曳標題列移動、拖右下角縮放。單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
 </main>
 <script>
 const $=s=>document.querySelector(s);
-let recs=[],hist={},S={},info={},R={},basis='single',sk='announced',sd=-1,openId=null;
+let recs=[],hist={},S={},info={},R={},basis='single',sk='announced',sd=-1,openId=null;const wins=new Map();let zTop=50;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pct=v=>v==null?'—':v.toFixed(1)+'%';
 const shift=(l,d)=>{let y=+l.slice(0,4),q=+l[5]+d;while(q<1){q+=4;y--}while(q>4){q-=4;y++}return y+'Q'+q};
@@ -87,6 +103,16 @@ function prepare(){
     if(r.q){S[r.code]=S[r.code]||{};S[r.code][l]={gm:ratio(r.q.gp,r.q.rev),om:ratio(r.q.op,r.q.rev),approx:!!r.q.approx}}})}
 function labels(){const s=new Set(recs.map(r=>r.year+'Q'+r.quarter));
   Object.values(S).forEach(m=>Object.keys(m).forEach(l=>s.add(l)));return[...s].sort().reverse()}
+function ext(code,l,key){const m=S[code];if(!m)return'';const e=m[l];if(!e||e[key]==null)return'';const c=e[key];let hi=true,lo=true;
+  for(let k=1;k<8;k++){const p=m[shift(l,-k)];if(!p||p[key]==null)return'';if(!(c>p[key]))hi=false;if(!(c<p[key]))lo=false}
+  return hi?'H':lo?'L':''}
+const dot=(c,s,t)=>`<span class="dot ${c}${s?' s':''}" title="${t}" aria-label="${t}"></span>`;
+function dots(g,o){
+  if(g&&g===o)return g==='H'?dot('dr',1,'兩率創近8季新高'):dot('dl',1,'兩率創近8季新低');
+  return(g?dot(g==='H'?'dy':'db',0,'毛利率創近8季'+(g==='H'?'新高':'新低')):'')+(o?dot(o==='H'?'do':'dg',0,'營業利益率創近8季'+(o==='H'?'新高':'新低')):'')}
+function rank(x){const g=x.eg,o=x.eo;
+  if(g==='H'&&o==='H')return 7;if(g==='H')return 6;if(o==='H')return 5;
+  if(g==='L'&&o==='L')return 1;if(g==='L')return 2;if(o==='L')return 3;return 4}
 function build(code,P){
   const rec=R[code+'|'+P],inf=info[code]||{},fin=/金融/.test(inf.industry||'');
   let cur=null,yoy=null,qoq=null;
@@ -95,19 +121,62 @@ function build(code,P){
     const d=(a,b)=>a==null||b==null?null:a-b;
     if(cur){yoy=y?d(cur.gm,y.gm):null;qoq=q?d(cur.gm,q.gm):null}}
   else if(rec)cur={gm:ratio(rec.gp,rec.rev),om:ratio(rec.op,rec.rev),approx:false};
-  return{code,rec,inf,fin,cur,gm:cur?cur.gm:null,om:cur?cur.om:null,yoy,qoq}}
+  const eg=fin?'':ext(code,P,'gm'),eo=fin?'':ext(code,P,'om');
+  return{code,rec,inf,fin,cur,gm:cur?cur.gm:null,om:cur?cur.om:null,yoy,qoq,eg,eo}}
 function cell(v,fin,approx){if(fin)return'<span class="na">不適用</span>';if(v==null)return'<span class="na">—</span>';
   const w=Math.max(0,Math.min(v,60))/60*100;
   return`<span class="m">${approx?'≈':''}${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
 function chg(v){if(v==null)return'<span class="na">—</span>';
   return`<span class="${v>0?'up':v<0?'down':'na'}">${v>0?'+':''}${v.toFixed(1)}</span>`}
+function chartSVG(code,P){
+  const W=640,H=300,L=46,Rt=18,T=40,B=34,n=8,m=S[code]||{};
+  const pts=[...Array(n)].map((_,i)=>{const l=shift(P,i-7),e=m[l];return{l,gm:e?e.gm:null,om:e?e.om:null,ap:!!(e&&e.approx),eg:ext(code,l,'gm'),eo:ext(code,l,'om')}});
+  const vals=pts.flatMap(p=>[p.gm,p.om]).filter(v=>v!=null);
+  if(!vals.length)return`<p class="na" style="padding:12px">近 8 季沒有可畫圖的資料。</p>`;
+  const pad=(Math.max(...vals)-Math.min(...vals))*.12||5,lo=Math.min(...vals)-pad,hi=Math.max(...vals)+pad;
+  const X=i=>L+i*(W-L-Rt)/(n-1),Y=v=>T+(hi-v)/(hi-lo)*(H-T-B),dec=hi-lo>20?0:1;
+  let g='';for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4;g+=`<line class="grid" x1="${L}" x2="${W-Rt}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v.toFixed(dec)}%</text>`}
+  if(lo<0&&hi>0)g+=`<line class="zero" x1="${L}" x2="${W-Rt}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+  const line=(key,c,ek)=>{let d='',pen=false,dots='';
+    pts.forEach((p,i)=>{const v=p[key];if(v==null){pen=false;return}
+      d+=(pen?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1);pen=true;
+      const e=p[ek],ring=e?`<circle class="ring${e}" cx="${X(i)}" cy="${Y(v)}" r="8"/>`:'';
+      dots+=`<circle class="${c}" cx="${X(i)}" cy="${Y(v)}" r="3.6"><title>${p.l.slice(0,4)} Q${p.l[5]}　${key==='gm'?'毛利率':'營業利益率'} ${p.ap?'≈':''}${v.toFixed(2)}%${e==='H'?'　創近8季新高':e==='L'?'　創近8季新低':''}</title></circle>${ring}`});
+    const last=[...pts].reverse().findIndex(p=>p[key]!=null),li=last<0?-1:n-1-last;
+    const lab=li<0?'':`<text x="${X(li)}" y="${Y(pts[li][key])-12}" text-anchor="${li===n-1?'end':'middle'}" style="fill:var(--ink);font-size:12px">${pts[li][key].toFixed(1)}%</text>`;
+    return`<path class="${c}" d="${d}"/>${dots}${lab}`};
+  const xs=pts.map((p,i)=>`<text x="${X(i)}" y="${H-12}" text-anchor="middle">${p.l.slice(2,4)}Q${p.l[5]}</text>`).join('');
+  const lg=`<line class="l1" x1="${L}" x2="${L+18}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+23}" y="18">毛利率</text><line class="l2" x1="${L+84}" x2="${L+102}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+107}" y="18">營業利益率</text>
+<circle class="ringH" cx="${W-150}" cy="14" r="6"/><text x="${W-139}" y="18">創8季新高</text><circle class="ringL" cx="${W-70}" cy="14" r="6"/><text x="${W-59}" y="18">新低</text>`;
+  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc((info[code]||{}).name||code)}近8季毛利率與營業利益率趨勢圖">${lg}${g}${line('gm','l1','eg')}${line('om','l2','eo')}${xs}</svg>`}
+function setPressed(id,v){const b=document.querySelector('.ico[data-chart="'+id+'"]');if(b)b.setAttribute('aria-pressed',String(v))}
+function closeWin(id){const w=wins.get(id);if(!w)return;w.remove();wins.delete(id);setPressed(id,false)}
+function openWin(id){
+  if(wins.has(id)){closeWin(id);return}
+  const mobile=innerWidth<720;if(mobile)[...wins.keys()].forEach(closeWin);
+  const [code,P]=id.split('|'),n=wins.size,w=Math.min(580,innerWidth-24);
+  const el=document.createElement('div');el.className='win';el.style.zIndex=++zTop;
+  el.style.width=w+'px';el.style.height=Math.round(w*.58)+'px';
+  el.style.left=Math.max(8,Math.min(innerWidth-w-8,140+n*28))+'px';el.style.top=Math.max(8,80+n*28)+'px';
+  const nm=esc((info[code]||{}).name||code);
+  el.innerHTML=`<div class="wh"><span><b>${nm}</b> ${code}　近 8 季單季（${shift(P,-7).slice(0,4)} Q${shift(P,-7)[5]} 至 ${P.slice(0,4)} Q${P[5]}）</span><button class="x" aria-label="關閉">×</button></div><div class="wb">${chartSVG(code,P)}</div>`;
+  const hd=el.querySelector('.wh');
+  el.addEventListener('pointerdown',()=>{el.style.zIndex=++zTop});
+  el.querySelector('.x').addEventListener('click',()=>closeWin(id));
+  hd.addEventListener('pointerdown',e=>{if(innerWidth<720||e.target.closest('.x'))return;
+    const r=el.getBoundingClientRect(),dx=e.clientX-r.left,dy=e.clientY-r.top;hd.setPointerCapture(e.pointerId);
+    const mv=ev=>{el.style.left=Math.max(0,Math.min(innerWidth-80,ev.clientX-dx))+'px';el.style.top=Math.max(0,Math.min(innerHeight-40,ev.clientY-dy))+'px'};
+    const up=()=>{hd.removeEventListener('pointermove',mv);hd.removeEventListener('pointerup',up)};
+    hd.addEventListener('pointermove',mv);hd.addEventListener('pointerup',up)});
+  document.body.appendChild(el);wins.set(id,el);setPressed(id,true)}
 function render(){
   const P=$('#date').value,s=$('#q').value.trim();
   const codes=Object.keys(info).filter(c=>R[c+'|'+P]||(S[c]&&S[c][P]));
-  let rows=codes.map(c=>build(c,P)).filter(x=>!s||x.code.includes(s)||(x.inf.name||'').includes(s));
+  const hf=$('#hi').value;
+  let rows=codes.map(c=>build(c,P)).filter(x=>(!s||x.code.includes(s)||(x.inf.name||'').includes(s))&&(hf==='all'||(hf[0]==='g'&&x.eg===hf[1])||(hf[0]==='o'&&x.eo===hf[1])||(hf[0]==='b'&&x.eg===hf[1]&&x.eo===hf[1])));
   rows.sort((a,b)=>{let x,y;
     if(sk==='announced'){x=a.rec&&a.rec.announced;y=b.rec&&b.rec.announced}
-    else if(sk==='code'){x=a.code;y=b.code}else{x=a[sk];y=b[sk]}
+    else if(sk==='code'){x=a.code;y=b.code}else if(sk==='mk'){x=rank(a);y=rank(b)}else{x=a[sk];y=b[sk]}
     if(x==null&&y==null)return cmp(a.code,b.code);if(x==null)return 1;if(y==null)return -1;
     return(cmp(x,y)||cmp(a.code,b.code))*sd});
   const avg=k=>{const a=rows.filter(x=>!x.fin).map(x=>x[k]).filter(v=>v!=null).sort((p,c)=>p-c);return a.length?(a[(a.length-1)>>1]+a[a.length>>1])/2:null};
@@ -118,16 +187,18 @@ function render(){
   msg.hidden=true;
   $('#tb').innerHTML=rows.map(x=>{const r=x.rec,id=x.code+'|'+P,det=openId===id,ap=x.cur&&x.cur.approx;
     const t=r?(r.announced?r.announced.slice(5,16):'<span class="na">較早公告</span>'):'<span class="na">—</span>';
-    return`<tr class="row" data-id="${id}"><td>${t}</td>
-<td><b>${esc(x.inf.name||'')}</b><span class="code">${x.code}</span><span class="tag">${x.inf.market||''}${x.inf.industry?'・'+esc(x.inf.industry):''}${r&&r.kind?'・'+r.kind:''}</span></td>
-<td class="r">${cell(x.gm,x.fin,ap)}</td><td class="r">${cell(x.om,x.fin,ap)}</td><td class="r">${chg(x.yoy)}</td><td class="r">${chg(x.qoq)}</td></tr>`+
-(det?`<tr class="detail"><td colspan="6">${r?`<span>營業收入 ${r.rev==null?'—':r.rev.toLocaleString()}</span><span>營業毛利 ${r.gp==null?'—':r.gp.toLocaleString()}</span><span>營業利益 ${r.op==null?'—':r.op.toLocaleString()}</span><span>單位：仟元（年初累計）</span><br>${esc(r.subject||'')}`:'此期間沒有近期公告的累計金額；數字來自 XQ 歷史資料。'}</td></tr>`:'')}).join('')}
-$('#tb').onclick=e=>{const t=e.target.closest('tr.row');if(!t)return;openId=openId===t.dataset.id?null:t.dataset.id;render()};
+    return`<tr class="row" data-id="${id}"><td>${t}</td><td class="mk">${dots(x.eg,x.eo)}</td>
+<td><b>${esc(x.inf.name||'')}</b><span class="code">${x.code}</span><button class="ico" data-chart="${id}" aria-pressed="${wins.has(id)}" title="看近8季毛利率與營益率趨勢圖" aria-label="趨勢圖"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"><path d="M2 13V3M2 13h12M4.5 10l3-3.5 2.5 2L14 4"/></svg></button><span class="tag">${x.inf.market||''}${x.inf.industry?'・'+esc(x.inf.industry):''}${r&&r.kind?'・'+r.kind:''}</span></td>
+<td class="r">${cell(x.gm,x.fin,ap)}</td><td class="r">${cell(x.om,x.fin,ap)}</td><td class="r">${chg(x.yoy)}</td><td class="r">${chg(x.qoq)}</td>
+</tr>`+
+(det?`<tr class="detail"><td colspan="7">${r?`<span>營業收入 ${r.rev==null?'—':r.rev.toLocaleString()}</span><span>營業毛利 ${r.gp==null?'—':r.gp.toLocaleString()}</span><span>營業利益 ${r.op==null?'—':r.op.toLocaleString()}</span><span>單位：仟元（年初累計）</span><br>${esc(r.subject||'')}`:'此期間沒有近期公告的累計金額；數字來自 XQ 歷史資料。'}</td></tr>`:'')}).join('')}
+$('#tb').onclick=e=>{const b=e.target.closest('.ico');if(b){openWin(b.dataset.chart);return}
+  const t=e.target.closest('tr.row');if(!t)return;openId=openId===t.dataset.id?null:t.dataset.id;render()};
 document.querySelectorAll('th').forEach(h=>{const f=()=>{const k=h.dataset.k;if(sk===k)sd=-sd;else{sk=k;sd=k==='code'?1:-1}render()};
   h.onclick=f;h.onkeydown=e=>{if(e.key==='Enter')f()}});
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{basis=b.dataset.b;
   document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
-$('#date').onchange=render;$('#q').oninput=render;
+$('#date').onchange=render;$('#hi').onchange=render;$('#q').oninput=render;
 const getJ=(u,opt)=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(u+' HTTP '+r.status);return r.json()}).catch(e=>{if(opt)return null;throw e});
 Promise.all([getJ('data/earnings.json'),getJ('data/history.json',true)]).then(([j,h])=>{
   recs=j.records;hist=(h&&h.companies)||{};prepare();
