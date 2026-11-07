@@ -39,8 +39,6 @@ tr.row:hover{background:var(--hover)}
 .detail span{margin-right:22px;white-space:nowrap}
 .msg{padding:28px 16px;text-align:center;color:var(--sub)}
 .note{font-size:12px;color:var(--sub);margin-top:10px}
-.qonly{display:none}
-.single .qonly{display:table-cell}
 </style>
 </head>
 <body>
@@ -48,10 +46,10 @@ tr.row:hover{background:var(--hover)}
   <h1>財報公告追蹤</h1>
   <p class="sub" id="meta">載入中…</p>
   <div class="bar">
-    <label>公告日期 <select id="date"></select></label>
+    <label>財報期間 <select id="date"></select></label>
     <div class="seg" role="group" aria-label="數字基準">
-      <button type="button" data-b="cum" aria-pressed="true">累計</button>
-      <button type="button" data-b="single" aria-pressed="false">單季</button>
+      <button type="button" data-b="single" aria-pressed="true">單季</button>
+      <button type="button" data-b="cum" aria-pressed="false">累計</button>
     </div>
     <input type="search" id="q" placeholder="搜尋代號或公司名稱" aria-label="搜尋">
   </div>
@@ -61,75 +59,84 @@ tr.row:hover{background:var(--hover)}
       <thead><tr>
         <th data-k="announced" tabindex="0">公告時間</th>
         <th data-k="code" tabindex="0">公司</th>
-        <th data-k="period" tabindex="0">財報期間</th>
         <th data-k="gm" class="r" tabindex="0">毛利率</th>
         <th data-k="om" class="r" tabindex="0">營業利益率</th>
         <th data-k="yoy" class="r" tabindex="0">較去年同期</th>
-        <th data-k="qoq" class="r qonly" tabindex="0">較上季</th>
+        <th data-k="qoq" class="r" tabindex="0">較上季</th>
       </tr></thead>
       <tbody id="tb"></tbody>
     </table>
     <div class="msg" id="msg" hidden></div>
   </div>
-  <p class="note">累計是年初到該季末的合計；單季是本季累計減上季累計，需要有上季公告資料才算得出來。「較去年同期」「較上季」是毛利率的百分點變化，紅色上升、綠色下降。「較早公告」是重大訊息已查不到、改由損益表補上的公司，沒有公告時間。資料來源：證交所 OpenAPI 重大訊息與綜合損益表。</p>
+  <p class="note">單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
 </main>
 <script>
 const $=s=>document.querySelector(s);
-let recs=[],idx={},basis='cum',sk='announced',sd=-1,openId=null;
+let recs=[],hist={},S={},info={},R={},basis='single',sk='announced',sd=-1,openId=null;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pct=v=>v==null?'—':v.toFixed(1)+'%';
-const vals=r=>basis==='cum'?{rev:r.rev,gp:r.gp,op:r.op}:r.q;
-function mg(r){const v=r&&vals(r);if(!v||!v.rev||v.rev<=0)return{gm:null,om:null};
-  return{gm:v.gp==null?null:v.gp/v.rev*100,om:v.op==null?null:v.op/v.rev*100}}
-function diff(a,b){return a==null||b==null?null:a-b}
-function build(r){
-  const m=mg(r),py=idx[r.code+'|'+(r.year-1)+'|'+r.quarter];
-  let y=r.year,q=r.quarter-1;if(q<1){q=4;y--}
-  const pq=basis==='single'?idx[r.code+'|'+y+'|'+q]:null;
-  return{r,gm:m.gm,om:m.om,yoy:diff(m.gm,mg(py).gm),qoq:pq?diff(m.gm,mg(pq).gm):null,
-    period:r.year*10+r.quarter}}
+const shift=(l,d)=>{let y=+l.slice(0,4),q=+l[5]+d;while(q<1){q+=4;y--}while(q>4){q-=4;y++}return y+'Q'+q};
+const ratio=(a,b)=>(a==null||b==null||!(b>0)||a===0)?null:a/b*100;
+const cmp=(a,b)=>a>b?1:a<b?-1:0;
+function prepare(){
+  Object.entries(hist).forEach(([c,h])=>{
+    info[c]={name:h.n,market:h.m,industry:h.i};S[c]={};
+    h.g.forEach((g,k)=>{const o=h.o[k];if(g!=null||o!=null)S[c][shift(h.l,-k)]={gm:g,om:o,approx:false}})});
+  recs.forEach(r=>{const l=r.year+'Q'+r.quarter;R[r.code+'|'+l]=r;
+    info[r.code]=Object.assign({industry:''},info[r.code],{name:r.name,market:r.market});
+    if(r.q){S[r.code]=S[r.code]||{};S[r.code][l]={gm:ratio(r.q.gp,r.q.rev),om:ratio(r.q.op,r.q.rev),approx:!!r.q.approx}}})}
+function labels(){const s=new Set(recs.map(r=>r.year+'Q'+r.quarter));
+  Object.values(S).forEach(m=>Object.keys(m).forEach(l=>s.add(l)));return[...s].sort().reverse()}
+function build(code,P){
+  const rec=R[code+'|'+P],inf=info[code]||{},fin=/金融/.test(inf.industry||'');
+  let cur=null,yoy=null,qoq=null;
+  if(basis==='single'){cur=S[code]&&S[code][P]||null;
+    const y=S[code]&&S[code][shift(P,-4)],q=S[code]&&S[code][shift(P,-1)];
+    const d=(a,b)=>a==null||b==null?null:a-b;
+    if(cur){yoy=y?d(cur.gm,y.gm):null;qoq=q?d(cur.gm,q.gm):null}}
+  else if(rec)cur={gm:ratio(rec.gp,rec.rev),om:ratio(rec.op,rec.rev),approx:false};
+  return{code,rec,inf,fin,cur,gm:cur?cur.gm:null,om:cur?cur.om:null,yoy,qoq}}
+function cell(v,fin,approx){if(fin)return'<span class="na">不適用</span>';if(v==null)return'<span class="na">—</span>';
+  const w=Math.max(0,Math.min(v,60))/60*100;
+  return`<span class="m">${approx?'≈':''}${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
 function chg(v){if(v==null)return'<span class="na">—</span>';
   return`<span class="${v>0?'up':v<0?'down':'na'}">${v>0?'+':''}${v.toFixed(1)}</span>`}
-function cell(v){if(v==null)return'<span class="na">—</span>';
-  const w=Math.max(0,Math.min(v,60))/60*100;
-  return`<span class="m">${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
 function render(){
-  const d=$('#date').value,s=$('#q').value.trim();
-  let rows=recs.filter(r=>(d==='all'||(d==='none'?!r.announced:r.announced&&r.announced.startsWith(d)))&&(!s||r.code.includes(s)||r.name.includes(s))).map(build);
+  const P=$('#date').value,s=$('#q').value.trim();
+  const codes=Object.keys(info).filter(c=>R[c+'|'+P]||(S[c]&&S[c][P]));
+  let rows=codes.map(c=>build(c,P)).filter(x=>!s||x.code.includes(s)||(x.inf.name||'').includes(s));
   rows.sort((a,b)=>{let x,y;
-    if(sk==='announced'){x=a.r.announced;y=b.r.announced}
-    else if(sk==='code'){x=a.r.code;y=b.r.code}
-    else{x=a[sk];y=b[sk]}
-    if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
-    return(x>y?1:x<y?-1:0)*sd});
-  $('#tbl').className=basis==='single'?'single':'';
-  const avg=k=>{const a=rows.map(x=>x[k]).filter(v=>v!=null);return a.length?a.reduce((p,c)=>p+c,0)/a.length:null};
-  const up=rows.filter(x=>x.yoy!=null&&x.yoy>0).length,have=rows.filter(x=>x.yoy!=null).length;
-  $('#stats').innerHTML=`<div>公告家數<b>${rows.length}</b></div><div>平均毛利率<b>${pct(avg('gm'))}</b></div><div>平均營業利益率<b>${pct(avg('om'))}</b></div><div>毛利率高於去年同期<b>${have?up+' / '+have:'—'}</b></div>`;
+    if(sk==='announced'){x=a.rec&&a.rec.announced;y=b.rec&&b.rec.announced}
+    else if(sk==='code'){x=a.code;y=b.code}else{x=a[sk];y=b[sk]}
+    if(x==null&&y==null)return cmp(a.code,b.code);if(x==null)return 1;if(y==null)return -1;
+    return(cmp(x,y)||cmp(a.code,b.code))*sd});
+  const avg=k=>{const a=rows.filter(x=>!x.fin).map(x=>x[k]).filter(v=>v!=null).sort((p,c)=>p-c);return a.length?(a[(a.length-1)>>1]+a[a.length>>1])/2:null};
+  const have=rows.filter(x=>x.yoy!=null),up=have.filter(x=>x.yoy>0).length;
+  $('#stats').innerHTML=`<div>家數<b>${rows.length}</b></div><div>毛利率中位數<b>${pct(avg('gm'))}</b></div><div>營業利益率中位數<b>${pct(avg('om'))}</b></div><div>毛利率高於去年同期<b>${have.length?up+' / '+have.length:'—'}</b></div>`;
   const msg=$('#msg');
-  if(!rows.length){msg.hidden=false;msg.textContent=recs.length?'這個條件下沒有財報公告。':'還沒有資料，請先執行一次抓取。';$('#tb').innerHTML='';return}
+  if(!rows.length){msg.hidden=false;msg.textContent='這個條件下沒有資料。';$('#tb').innerHTML='';return}
   msg.hidden=true;
-  $('#tb').innerHTML=rows.map(x=>{const r=x.r,v=vals(r),det=openId===r.id,wait=basis==='single'&&!r.q;
-    return`<tr class="row" data-id="${r.id}"><td>${r.announced?r.announced.slice(5,16):'<span class="na">較早公告</span>'}</td>
-<td><b>${esc(r.name)}</b><span class="code">${r.code}</span><span class="tag">${r.market}${r.kind?'・'+r.kind:''}</span></td>
-<td>${r.year} Q${r.quarter}</td>
-<td class="r">${wait?'<span class="na">待上季資料</span>':(v&&v.gp==null?'<span class="na">不適用</span>':cell(x.gm))}</td>
-<td class="r">${wait?'<span class="na">—</span>':cell(x.om)}</td><td class="r">${chg(x.yoy)}</td><td class="r qonly">${chg(x.qoq)}</td></tr>`+
-(det?`<tr class="detail"><td colspan="7">${v?`<span>營業收入 ${v.rev==null?'—':v.rev.toLocaleString()}</span><span>營業毛利 ${v.gp==null?'—':v.gp.toLocaleString()}</span><span>營業利益 ${v.op==null?'—':v.op.toLocaleString()}</span><span>單位：仟元（${basis==='cum'?'年初累計':'單季'}）</span>`:'單季資料需要上一季公告，目前尚無。'}<br>${esc(r.subject)}</td></tr>`:'')}).join('')}
+  $('#tb').innerHTML=rows.map(x=>{const r=x.rec,id=x.code+'|'+P,det=openId===id,ap=x.cur&&x.cur.approx;
+    const t=r?(r.announced?r.announced.slice(5,16):'<span class="na">較早公告</span>'):'<span class="na">—</span>';
+    return`<tr class="row" data-id="${id}"><td>${t}</td>
+<td><b>${esc(x.inf.name||'')}</b><span class="code">${x.code}</span><span class="tag">${x.inf.market||''}${x.inf.industry?'・'+esc(x.inf.industry):''}${r&&r.kind?'・'+r.kind:''}</span></td>
+<td class="r">${cell(x.gm,x.fin,ap)}</td><td class="r">${cell(x.om,x.fin,ap)}</td><td class="r">${chg(x.yoy)}</td><td class="r">${chg(x.qoq)}</td></tr>`+
+(det?`<tr class="detail"><td colspan="6">${r?`<span>營業收入 ${r.rev==null?'—':r.rev.toLocaleString()}</span><span>營業毛利 ${r.gp==null?'—':r.gp.toLocaleString()}</span><span>營業利益 ${r.op==null?'—':r.op.toLocaleString()}</span><span>單位：仟元（年初累計）</span><br>${esc(r.subject||'')}`:'此期間沒有近期公告的累計金額；數字來自 XQ 歷史資料。'}</td></tr>`:'')}).join('')}
 $('#tb').onclick=e=>{const t=e.target.closest('tr.row');if(!t)return;openId=openId===t.dataset.id?null:t.dataset.id;render()};
 document.querySelectorAll('th').forEach(h=>{const f=()=>{const k=h.dataset.k;if(sk===k)sd=-sd;else{sk=k;sd=k==='code'?1:-1}render()};
   h.onclick=f;h.onkeydown=e=>{if(e.key==='Enter')f()}});
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{basis=b.dataset.b;
   document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
 $('#date').onchange=render;$('#q').oninput=render;
-fetch('data/earnings.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(j=>{
-  recs=j.records;recs.forEach(r=>idx[r.code+'|'+r.year+'|'+r.quarter]=r);
-  const ds=[...new Set(recs.filter(r=>r.announced).map(r=>r.announced.slice(0,10)))].sort().reverse();
-  $('#date').innerHTML=ds.map(d=>`<option value="${d}">${d.replace(/-/g,'/')}</option>`).join('')+(recs.some(r=>!r.announced)?'<option value="none">較早公告（無時間）</option>':'')+'<option value="all">全部日期</option>';
-  $('#meta').textContent=`資料更新時間 ${j.updated_at}　累計 ${recs.length} 筆財報公告`;
+const getJ=(u,opt)=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(u+' HTTP '+r.status);return r.json()}).catch(e=>{if(opt)return null;throw e});
+Promise.all([getJ('data/earnings.json'),getJ('data/history.json',true)]).then(([j,h])=>{
+  recs=j.records;hist=(h&&h.companies)||{};prepare();
+  const ls=labels(),latest=recs.map(r=>r.year+'Q'+r.quarter).sort().reverse()[0]||ls[0];
+  $('#date').innerHTML=ls.map(l=>`<option value="${l}"${l===latest?' selected':''}>${l.slice(0,4)} Q${l[5]}</option>`).join('');
+  $('#meta').textContent=`資料更新時間 ${j.updated_at}　近期公告 ${recs.length} 筆　歷史資料 ${Object.keys(hist).length} 家`;
   try{render()}catch(e){console.error(e);$('#meta').textContent='';const m=$('#msg');m.hidden=false;m.textContent='資料已讀取，但畫面產生時出錯：'+e.message}
 }).catch(e=>{console.error(e);$('#meta').textContent='';const m=$('#msg');m.hidden=false;
-  m.textContent='讀不到 data/earnings.json（'+e.message+'）。直接雙擊 index.html 開啟會失敗，請用 GitHub Pages 的網址開啟；也請確認儲存庫裡有 data/earnings.json。'});
+  m.textContent='讀不到資料（'+e.message+'）。直接雙擊 index.html 開啟會失敗，請用 GitHub Pages 的網址開啟；也請確認儲存庫裡有 data/earnings.json。'});
 </script>
 </body>
 </html>
