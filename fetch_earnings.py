@@ -125,8 +125,10 @@ def parse_income(rec, market):
     rev = num(str(rec.get("營業收入", "")))
     if rev is None or quarter not in (1, 2, 3, 4):
         return None, f"{code} 沒有營業收入數字"
-    # 官方「營益分析」的毛利率用「營業毛利（毛損）淨額」，這裡跟官方一致；沒有淨額才用毛利
-    gp = num(str(g(rec, "營業毛利（毛損）淨額", "營業毛利（毛損）")))
+    # 統一用「營業毛利（毛損）」：財報公告與 XQ 歷史都是這一種，趨勢才接得起來。
+    # 「淨額」另存成 gp_net 備查（官方營益分析用的是淨額，少數公司會差 0.2 個百分點以內）。
+    gp = num(str(g(rec, "營業毛利（毛損）", "營業毛利（毛損）淨額")))
+    gp_net = num(str(g(rec, "營業毛利（毛損）淨額")))
     return {
         "id": f"{code}|{year}|{quarter}",
         "code": code,
@@ -139,12 +141,23 @@ def parse_income(rec, market):
         "subject": "",
         "rev": rev,
         "gp": gp,
+        "gp_net": gp_net,
         "op": num(str(rec.get("營業利益（損失）", ""))),
     }, None
 
 
-def add_single_quarter(records):
-    """單季 = 本季累計 - 上季累計。找不到上季資料就留 None。"""
+def load_seed():
+    """history.json 裡「最新期是 Q2」的公司附有 Q1、Q2 金額（仟元），用來推算第 3 季單季。"""
+    p = OUT.parent / "history.json"
+    if not p.exists():
+        return {}
+    comp = json.loads(p.read_text(encoding="utf-8")).get("companies", {})
+    return {c: v["s"] for c, v in comp.items() if v.get("s")}
+
+
+def add_single_quarter(records, seed=None):
+    """單季 = 本季累計 - 上季累計。上季累計來自我們存的紀錄，或 history.json 的種子（標 approx）。"""
+    seed = load_seed() if seed is None else seed
     by = {(r["code"], r["year"], r["quarter"]): r for r in records.values()}
     for r in records.values():
         cur = {"rev": r["rev"], "gp": r["gp"], "op": r["op"]}
@@ -153,7 +166,12 @@ def add_single_quarter(records):
             continue
         prev = by.get((r["code"], r["year"], r["quarter"] - 1))
         if not prev:
+            sd = seed.get(r["code"])
             r["q"] = None
+            if sd and sd["y"] == r["year"] and sd["lq"] == r["quarter"] - 1:
+                cum_prev = {k: sum(sd[k]) for k in ("rev", "gp", "op")}  # Q1+Q2 金額（百萬換算，精度較低）
+                r["q"] = {k: None if cur[k] is None else cur[k] - cum_prev[k] for k in cur}
+                r["q"]["approx"] = True
             continue
         r["q"] = {
             k: (None if cur[k] is None or prev[k] is None else cur[k] - prev[k])
@@ -237,7 +255,8 @@ def main():
                 new += old is None
                 records[data["id"]] = data
             elif data["gp"] is not None:
-                old["gp"] = data["gp"]  # 損益表是正式數字（毛利為淨額），蓋掉公告時的初步毛利
+                old["gp"] = data["gp"]  # 以損益表的正式數字為準
+                old["gp_net"] = data["gp_net"]
 
     add_single_quarter(records)
     out = {
