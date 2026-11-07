@@ -48,7 +48,7 @@ td.mk,th.mk{text-align:center;padding-left:6px;padding-right:6px;white-space:now
 .x:hover{background:var(--cr);color:#fff}
 .wb{flex:1;min-height:0;padding:4px 6px}.wb svg{width:100%;height:100%;display:block}
 .wb text{fill:var(--sub);font-size:11px}.wb .grid{stroke:var(--line);stroke-width:1}.wb .zero{stroke:var(--sub);stroke-dasharray:3 3}
-.wb .l1{stroke:var(--ln1)}.wb .l2{stroke:var(--ln2)}.wb path.l1,.wb path.l2{fill:none;stroke-width:2.2}
+.wb .rl1{fill:var(--ln1)}.wb .rl2{fill:var(--ln2)}.wb .l1{stroke:var(--ln1)}.wb .l2{stroke:var(--ln2)}.wb path.l1,.wb path.l2{fill:none;stroke-width:2.2}
 .wb circle.l1{fill:var(--ln1)}.wb circle.l2{fill:var(--ln2)}.wb .ringH{fill:none;stroke:var(--cr);stroke-width:2}.wb .ringL{fill:none;stroke:var(--cg);stroke-width:2}
 @media(max-width:720px){.win{left:0!important;right:0;top:auto!important;bottom:0;width:100%!important;height:56vh!important;resize:none;border-radius:10px 10px 0 0}.wh{cursor:default}}
 .msg{padding:28px 16px;text-align:center;color:var(--sub)}
@@ -128,27 +128,35 @@ function cell(v,fin,approx){if(fin)return'<span class="na">不適用</span>';if(
   return`<span class="m">${approx?'≈':''}${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
 function chg(v){if(v==null)return'<span class="na">—</span>';
   return`<span class="${v>0?'up':v<0?'down':'na'}">${v>0?'+':''}${v.toFixed(1)}</span>`}
+const CW=640,CH=360;
 function chartSVG(code,P){
-  const W=640,H=300,L=46,Rt=18,T=40,B=34,n=8,m=S[code]||{};
+  const W=CW,H=CH,L=52,Rt=14,T=40,n=8,RH=22,TT=H-3*RH-6,PB=TT-12,sp=(W-L-Rt)/n,m=S[code]||{};
   const pts=[...Array(n)].map((_,i)=>{const l=shift(P,i-7),e=m[l];return{l,gm:e?e.gm:null,om:e?e.om:null,ap:!!(e&&e.approx),eg:ext(code,l,'gm'),eo:ext(code,l,'om')}});
   const vals=pts.flatMap(p=>[p.gm,p.om]).filter(v=>v!=null);
   if(!vals.length)return`<p class="na" style="padding:12px">近 8 季沒有可畫圖的資料。</p>`;
   const pad=(Math.max(...vals)-Math.min(...vals))*.12||5,lo=Math.min(...vals)-pad,hi=Math.max(...vals)+pad;
-  const X=i=>L+i*(W-L-Rt)/(n-1),Y=v=>T+(hi-v)/(hi-lo)*(H-T-B),dec=hi-lo>20?0:1;
+  const X=i=>L+sp*(i+.5),Y=v=>T+(hi-v)/(hi-lo)*(PB-T),dec=hi-lo>20?0:1;
   let g='';for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4;g+=`<line class="grid" x1="${L}" x2="${W-Rt}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v.toFixed(dec)}%</text>`}
   if(lo<0&&hi>0)g+=`<line class="zero" x1="${L}" x2="${W-Rt}" y1="${Y(0)}" y2="${Y(0)}"/>`;
   const line=(key,c,ek)=>{let d='',pen=false,dots='';
     pts.forEach((p,i)=>{const v=p[key];if(v==null){pen=false;return}
       d+=(pen?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1);pen=true;
-      const e=p[ek],ring=e?`<circle class="ring${e}" cx="${X(i)}" cy="${Y(v)}" r="8"/>`:'';
-      dots+=`<circle class="${c}" cx="${X(i)}" cy="${Y(v)}" r="3.6"><title>${p.l.slice(0,4)} Q${p.l[5]}　${key==='gm'?'毛利率':'營業利益率'} ${p.ap?'≈':''}${v.toFixed(2)}%${e==='H'?'　創近8季新高':e==='L'?'　創近8季新低':''}</title></circle>${ring}`});
+      dots+=`<circle class="${c}" cx="${X(i)}" cy="${Y(v)}" r="3.6"/>`+(p[ek]?`<circle class="ring${p[ek]}" cx="${X(i)}" cy="${Y(v)}" r="8"/>`:'')});
     const last=[...pts].reverse().findIndex(p=>p[key]!=null),li=last<0?-1:n-1-last;
     const lab=li<0?'':`<text x="${X(li)}" y="${Y(pts[li][key])-12}" text-anchor="${li===n-1?'end':'middle'}" style="fill:var(--ink);font-size:12px">${pts[li][key].toFixed(1)}%</text>`;
     return`<path class="${c}" d="${d}"/>${dots}${lab}`};
-  const xs=pts.map((p,i)=>`<text x="${X(i)}" y="${H-12}" text-anchor="middle">${p.l.slice(2,4)}Q${p.l[5]}</text>`).join('');
+  // 圖下方的表格：每欄的中心與上面各季折點同一個 x 位置
+  let tb=`<rect x="${L}" y="${TT}" width="${W-L-Rt}" height="${RH}" style="fill:var(--hover)"/>`;
+  for(let r=0;r<=3;r++)tb+=`<line class="grid" x1="${L}" x2="${W-Rt}" y1="${TT+r*RH}" y2="${TT+r*RH}"/>`;
+  for(let i=0;i<=n;i++)tb+=`<line class="grid" x1="${L+sp*i}" x2="${L+sp*i}" y1="${TT}" y2="${TT+3*RH}"/>`;
+  tb+=`<text x="${L-6}" y="${TT+15}" text-anchor="end">季別</text><text class="rl1" x="${L-6}" y="${TT+RH+15}" text-anchor="end">毛利率</text><text class="rl2" x="${L-6}" y="${TT+2*RH+15}" text-anchor="end">營益率</text>`;
+  pts.forEach((p,i)=>{
+    tb+=`<text x="${X(i)}" y="${TT+15}" text-anchor="middle" style="fill:var(--ink)">${p.l.slice(2,4)}Q${p.l[5]}</text>`;
+    [['gm','eg',1],['om','eo',2]].forEach(([k,ek,r])=>{const v=p[k],st=p[ek]==='H'?'fill:var(--cr);font-weight:700':p[ek]==='L'?'fill:var(--cg);font-weight:700':'fill:var(--ink)';
+      tb+=`<text x="${X(i)}" y="${TT+r*RH+15}" text-anchor="middle" style="${st};font-size:12px">${v==null?'—':(p.ap?'≈':'')+v.toFixed(1)+'%'}</text>`})});
   const lg=`<line class="l1" x1="${L}" x2="${L+18}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+23}" y="18">毛利率</text><line class="l2" x1="${L+84}" x2="${L+102}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+107}" y="18">營業利益率</text>
 <circle class="ringH" cx="${W-150}" cy="14" r="6"/><text x="${W-139}" y="18">創8季新高</text><circle class="ringL" cx="${W-70}" cy="14" r="6"/><text x="${W-59}" y="18">新低</text>`;
-  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc((info[code]||{}).name||code)}近8季毛利率與營業利益率趨勢圖">${lg}${g}${line('gm','l1','eg')}${line('om','l2','eo')}${xs}</svg>`}
+  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc((info[code]||{}).name||code)}近8季毛利率與營業利益率趨勢圖與數值表">${lg}${g}${line('gm','l1','eg')}${line('om','l2','eo')}${tb}</svg>`}
 function setPressed(id,v){const b=document.querySelector('.ico[data-chart="'+id+'"]');if(b)b.setAttribute('aria-pressed',String(v))}
 function closeWin(id){const w=wins.get(id);if(!w)return;w.remove();wins.delete(id);setPressed(id,false)}
 function openWin(id){
@@ -156,7 +164,7 @@ function openWin(id){
   const mobile=innerWidth<720;if(mobile)[...wins.keys()].forEach(closeWin);
   const [code,P]=id.split('|'),n=wins.size,w=Math.min(580,innerWidth-24);
   const el=document.createElement('div');el.className='win';el.style.zIndex=++zTop;
-  el.style.width=w+'px';el.style.height=Math.round(w*.58)+'px';
+  el.style.width=w+'px';el.style.height=Math.round(w*CH/CW)+52+'px';
   el.style.left=Math.max(8,Math.min(innerWidth-w-8,140+n*28))+'px';el.style.top=Math.max(8,80+n*28)+'px';
   const nm=esc((info[code]||{}).name||code);
   el.innerHTML=`<div class="wh"><span><b>${nm}</b> ${code}　近 8 季單季（${shift(P,-7).slice(0,4)} Q${shift(P,-7)[5]} 至 ${P.slice(0,4)} Q${P[5]}）</span><button class="x" aria-label="關閉">×</button></div><div class="wb">${chartSVG(code,P)}</div>`;
