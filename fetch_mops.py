@@ -32,7 +32,7 @@ KEEP_DAYS = 7      # 「看過」紀錄保留天數
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 ROW = re.compile(r"<tr class='(?:even|odd)'>(.*?)</tr>", re.S)
-FIN = re.compile("財務報告|財務報表|財報")
+FIN = re.compile("財務報告|財務報表")
 BLOCK_MARKS = ("因為安全性考量", "THIS PAGE CAN NOT BE ACCESSED", "Access Denied")
 DETAIL_ORDER = ["TYPEK", "step", "skey", "hhc_co_name", "firstin", "COMPANY_ID",
                 "COMPANY_NAME", "SPOKE_DATE", "SPOKE_TIME", "SEQ_NO"]
@@ -48,7 +48,7 @@ def http(method, url, fields=None):
                     "Referer": URL_PAGE, "Origin": BASE})
     req = urllib.request.Request(url, data=body, headers=hdr, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urllib.request.urlopen(req, timeout=45) as r:
             return {"status": r.status, "text": r.read(4_000_000).decode("utf-8", errors="replace")}
     except urllib.error.HTTPError as e:
         return {"status": e.code, "text": e.read(20000).decode("utf-8", errors="replace")}
@@ -86,26 +86,34 @@ def parse_detail(text):
     return (m.group(1) if m else ""), (c.group(1) if c else ""), (html.unescape(d.group(1)) if d else "")
 
 
-def process(rows, get_detail, records, seen, limit=MAX_DETAIL, pause=PAUSE, sleep=time.sleep):
+def process(rows, get_detail, records, seen, limit=MAX_DETAIL, pause=PAUSE, sleep=time.sleep, retry_wait=8):
     st = {"candidates": 0, "seen": 0, "queried": 0, "added": 0, "not_earnings": 0,
-          "duplicate": 0, "parse_fail": [], "errors": 0, "blocked": False}
+          "duplicate": 0, "parse_fail": [], "errors": 0, "streak": 0, "blocked": False}
     cand = [r for r in rows if FIN.search(r["subject"]) and r["fields"].get("skey")]
     st["candidates"] = len(cand)
     todo = [r for r in cand if r["fields"]["skey"] not in seen]
     st["seen"] = len(cand) - len(todo)
+    bad = lambda r: "error" in r or r.get("status") != 200 or not r.get("text")
     for row in todo[:limit]:
         res = get_detail(row)
         sleep(pause)
+        if bad(res) and not any(b in res.get("text", "") for b in BLOCK_MARKS):
+            sleep(retry_wait)  # 暫時性失敗（逾時等）先等一下再試一次
+            res = get_detail(row)
+            sleep(pause)
         st["queried"] += 1
         text = res.get("text", "")
         if any(b in text for b in BLOCK_MARKS):
             st["blocked"] = True
             break
-        if "error" in res or res.get("status") != 200 or not text:
+        if bad(res):
             st["errors"] += 1
-            if st["errors"] >= 2:  # 連續出錯就先停，不再繼續打
+            st["streak"] += 1
+            print(f"[錯誤] {row['code']} {row['time']} {res.get('error') or 'HTTP ' + str(res.get('status'))}")
+            if st["streak"] >= 3:  # 連續 3 筆都失敗才先停，其餘留到下一次
                 break
             continue
+        st["streak"] = 0
         key = row["fields"]["skey"]
         seen[key] = row["fields"].get("SPOKE_DATE", "")
         market, clause, body = parse_detail(text)
