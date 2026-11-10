@@ -131,6 +131,7 @@ def process(rows, get_detail, records, seen, limit=MAX_DETAIL, pause=PAUSE, slee
         data, err = fe.parse(rec, market)
         if err:
             st["parse_fail"].append(err)
+            seen.pop(key, None)  # 解析失敗不算看過，修好程式後下次會再試
         elif data["id"] in records:
             st["duplicate"] += 1
         else:
