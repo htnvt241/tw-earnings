@@ -3,11 +3,7 @@ name: update-mops
 on:
   schedule:
     # 台灣時間 12:00、15:00、18:30、21:00、23:00（GitHub 用 UTC，要減 8 小時）
-    - cron: "0 4 * * *"
-    - cron: "0 7 * * *"
-    - cron: "30 10 * * *"
-    - cron: "0 13 * * *"
-    - cron: "0 15 * * *"
+    - cron: "23 4-15 * * *"
   workflow_dispatch:        # 允許在 Actions 頁面手動執行
 
 permissions:
