@@ -65,7 +65,7 @@ def clock(s):
 
 def num(text):
     """'(85,996)' / '-39,694' / '4993156' / '新台幣646,154仟元' -> 數字；不適用 -> None"""
-    t = re.sub(r"新台幣|新臺幣|仟元|千元|元|,|\s", "", text or "")
+    t = re.sub(r"新台幣|新臺幣|NT\$|\$|仟元|千元|元|,|\s", "", text or "")
     if not re.fullmatch(r"\(?-?\d+(?:\.\d+)?\)?", t):
         return None
     v = float(t.strip("()").lstrip("-"))
