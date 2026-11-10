@@ -29,6 +29,7 @@ SEEN = fe.OUT.parent / "mops_seen.json"
 MAX_DETAIL = 150   # 每次最多查幾筆詳細內容，其餘留到下一次
 PAUSE = 2.5        # 每次詳細內容請求之間的間隔（秒）
 KEEP_DAYS = 7      # 「看過」紀錄保留天數
+RUN_LIMIT = 20 * 60  # 單次執行時間上限（秒）；到了就先存檔結束，剩下的留給下一次
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 ROW = re.compile(r"<tr class='(?:even|odd)'>(.*?)</tr>", re.S)
@@ -86,15 +87,19 @@ def parse_detail(text):
     return (m.group(1) if m else ""), (c.group(1) if c else ""), (html.unescape(d.group(1)) if d else "")
 
 
-def process(rows, get_detail, records, seen, limit=MAX_DETAIL, pause=PAUSE, sleep=time.sleep, retry_wait=8):
+def process(rows, get_detail, records, seen, limit=MAX_DETAIL, pause=PAUSE, sleep=time.sleep, retry_wait=8,
+            deadline=None, now=time.monotonic):
     st = {"candidates": 0, "seen": 0, "queried": 0, "added": 0, "not_earnings": 0,
-          "duplicate": 0, "parse_fail": [], "errors": 0, "streak": 0, "blocked": False}
+          "duplicate": 0, "parse_fail": [], "errors": 0, "streak": 0, "blocked": False, "timed_out": False}
     cand = [r for r in rows if FIN.search(r["subject"]) and r["fields"].get("skey")]
     st["candidates"] = len(cand)
     todo = [r for r in cand if r["fields"]["skey"] not in seen]
     st["seen"] = len(cand) - len(todo)
     bad = lambda r: "error" in r or r.get("status") != 200 or not r.get("text")
     for row in todo[:limit]:
+        if deadline is not None and now() > deadline:
+            st["timed_out"] = True
+            break
         res = get_detail(row)
         sleep(pause)
         if bad(res) and not any(b in res.get("text", "") for b in BLOCK_MARKS):
@@ -151,12 +156,13 @@ def main():
         records = {r["id"]: r for r in prev.get("records", [])}
     seen = json.loads(SEEN.read_text(encoding="utf-8")) if SEEN.exists() else {}
 
-    st = process(rows, fetch_detail, records, seen)
+    st = process(rows, fetch_detail, records, seen, deadline=time.monotonic() + RUN_LIMIT)
     cutoff = (datetime.now(fe.TW) - timedelta(days=KEEP_DAYS)).strftime("%Y%m%d")
     seen_new = {k: v for k, v in seen.items() if v >= cutoff}
     print(f"清單 {len(rows)} 列，財報候選 {st['candidates']}，先前已看過 {st['seen']}，"
           f"本次查詢 {st['queried']}，新增 {st['added']}，非財報公告 {st['not_earnings']}，"
-          f"重複 {st['duplicate']}，解析失敗 {len(st['parse_fail'])}，錯誤 {st['errors']}")
+          f"重複 {st['duplicate']}，解析失敗 {len(st['parse_fail'])}，錯誤 {st['errors']}"
+          + ("，已達時間上限提早結束，其餘留到下一次" if st["timed_out"] else ""))
     for e in st["parse_fail"]:
         print(f"[解析失敗] {e}")
     if st["blocked"]:
