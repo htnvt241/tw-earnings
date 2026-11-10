@@ -32,7 +32,7 @@ KEEP_DAYS = 7      # 「看過」紀錄保留天數
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 ROW = re.compile(r"<tr class='(?:even|odd)'>(.*?)</tr>", re.S)
-FIN = re.compile("財務報告|財務報表")
+FIN = re.compile("財務報告|財務報表|財報")
 BLOCK_MARKS = ("因為安全性考量", "THIS PAGE CAN NOT BE ACCESSED", "Access Denied")
 DETAIL_ORDER = ["TYPEK", "step", "skey", "hhc_co_name", "firstin", "COMPANY_ID",
                 "COMPANY_NAME", "SPOKE_DATE", "SPOKE_TIME", "SEQ_NO"]
