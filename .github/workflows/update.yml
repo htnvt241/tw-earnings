@@ -1,9 +1,8 @@
 name: update-earnings
 
 on:
-  schedule:
-    - cron: "0 10 * * *"   # 台灣時間 18:00（UTC 10:00）
-    - cron: "30 0 * * *"   # 台灣時間隔天 08:30，補抓 OpenAPI 較晚更新的資料
+  schedule:  
+    - cron: "47 2,6,10,14,18,22 * * *"   # 每 4 小時第 47 分鐘（台灣時間 02:47、06:47、10:47、14:47、18:47、22:47）
   workflow_dispatch:        # 允許在 Actions 頁面手動執行
 
 permissions:
