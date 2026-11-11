@@ -173,7 +173,7 @@ function closeWin(id){const w=wins.get(id);if(!w)return;w.remove();wins.delete(i
 function openWin(id){
   if(wins.has(id)){closeWin(id);return}
   const mobile=innerWidth<720;if(mobile)[...wins.keys()].forEach(closeWin);
-  const [code,P]=id.split('|'),n=wins.size,w=Math.min(580,innerWidth-24);
+  const [code,P]=id.split('|'),n=wins.size,w=Math.min(710,innerWidth-24);
   const el=document.createElement('div');el.className='win';el.style.zIndex=++zTop;
   el.style.width=w+'px';el.style.height=Math.round(w*CH/CW)+52+'px';
   el.style.left=Math.max(8,Math.min(innerWidth-w-8,140+n*28))+'px';el.style.top=Math.max(8,80+n*28)+'px';
