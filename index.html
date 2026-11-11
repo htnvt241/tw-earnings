@@ -23,7 +23,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,th:focus-visible{o
 .stats div{font-size:13px;color:var(--sub)}
 .stats b{display:block;font-size:24px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
-table{width:100%;border-collapse:collapse;min-width:860px;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;min-width:960px;font-variant-numeric:tabular-nums}
 th{font-size:13px;font-weight:500;color:var(--sub);text-align:left;padding:10px 12px;cursor:pointer;white-space:nowrap;user-select:none}
 th.r,td.r{text-align:right}
 td{padding:10px 12px;border-top:1px solid var(--line)}
@@ -39,7 +39,8 @@ tr.row:hover{background:var(--hover)}
 .detail span{margin-right:22px;white-space:nowrap}
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:2.5px solid var(--dc);margin:0 2px;vertical-align:middle;box-sizing:border-box;background:transparent}
 .dot.s{background:var(--dc)}.dy{--dc:var(--cy)}.do{--dc:var(--co)}.dr{--dc:var(--cr)}.db{--dc:var(--cb)}.dg{--dc:var(--cg)}.dl{--dc:var(--cl)}
-td.mk,th.mk{text-align:center;padding-left:6px;padding-right:6px;white-space:nowrap}
+td.mk,th.mk{text-align:left;padding-left:10px;padding-right:6px;white-space:nowrap}
+.mkc{display:flex;align-items:center;gap:6px}.mkt{font-size:12px;color:var(--sub);line-height:1.35}
 .ico{border:0;background:none;padding:2px 4px;margin-left:6px;cursor:pointer;color:var(--sub);vertical-align:middle;border-radius:4px}
 .ico:hover,.ico[aria-pressed=true]{color:var(--bar);background:var(--hover)}
 .win{position:fixed;display:flex;flex-direction:column;min-width:300px;min-height:190px;resize:both;overflow:hidden;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.28)}
@@ -61,7 +62,7 @@ td.mk,th.mk{text-align:center;padding-left:6px;padding-right:6px;white-space:now
   <p class="sub" id="meta">載入中…</p>
   <div class="bar">
     <label>財報期間 <select id="date"></select></label>
-    <label>新高低 <select id="hi"><option value="all">全部</option><option value="gH">毛利率新高</option><option value="oH">營益率新高</option><option value="bH">兩率新高</option><option value="gL">毛利率新低</option><option value="oL">營益率新低</option><option value="bL">兩率新低</option></select></label>
+    <label>新高 <select id="hi"><option value="all">全部</option><option value="any">任一率新高</option><option value="gH">毛利率新高</option><option value="oH">營益率新高</option><option value="bH">兩率新高</option></select></label>
     <div class="seg" role="group" aria-label="數字基準">
       <button type="button" data-b="single" aria-pressed="true">單季</button>
       <button type="button" data-b="cum" aria-pressed="false">累計</button>
@@ -84,7 +85,7 @@ td.mk,th.mk{text-align:center;padding-left:6px;padding-right:6px;white-space:now
     </table>
     <div class="msg" id="msg" hidden></div>
   </div>
-  <p class="note">「毛/營」欄是近 8 季（含當季）的新高／新低標記，以單季數字比較，當季須嚴格高於（低於）前 7 季，8 季資料齊全才判斷，與單季／累計切換無關，金融保險業不判斷。第 1 個是毛利率、第 2 個是營業利益率，兩率同向時合併成一個實心圓：<span class="dot dy"></span>毛利率新高 <span class="dot do"></span>營益率新高 <span class="dot dr s"></span>兩率新高 <span class="dot db"></span>毛利率新低 <span class="dot dg"></span>營益率新低 <span class="dot dl s"></span>兩率新低。點公司旁的折線圖示開啟近 8 季趨勢圖，可拖曳標題列移動、拖右下角縮放。單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
+  <p class="note">「毛/營」欄是近 8 季（含當季）的新高／新低標記，以單季數字比較，當季須嚴格高於（低於）前 7 季，8 季資料齊全才判斷，與單季／累計切換無關，金融保險業不判斷；<b>新高另外要求數值 ≥ 0</b>。第 1 個是毛利率、第 2 個是營業利益率，兩率同向時合併成一個實心圓：<span class="dot dy"></span>毛利率新高 <span class="dot do"></span>營益率新高 <span class="dot dr s"></span>兩率新高 <span class="dot db"></span>毛利率新低 <span class="dot dg"></span>營益率新低 <span class="dot dl s"></span>兩率新低。新高後面的文字說明前面的新高：「首次新高」＝往前 8 季內沒有新高，「連 N 季新高」＝含當季連續 N 季新高，「隔 N 季新高」＝上一次新高在 N+1 季前。歷史資料不足時只能看到有資料的季度。點公司旁的折線圖示開啟近 9 季趨勢圖，可拖曳標題列移動、拖右下角縮放。單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
 </main>
 <script>
 const $=s=>document.querySelector(s);
@@ -103,13 +104,23 @@ function prepare(){
     if(r.q){S[r.code]=S[r.code]||{};S[r.code][l]={gm:ratio(r.q.gp,r.q.rev),om:ratio(r.q.op,r.q.rev),approx:!!r.q.approx}}})}
 function labels(){const s=new Set(recs.map(r=>r.year+'Q'+r.quarter));
   Object.values(S).forEach(m=>Object.keys(m).forEach(l=>s.add(l)));return[...s].sort().reverse()}
-function ext(code,l,key){const m=S[code];if(!m)return'';const e=m[l];if(!e||e[key]==null)return'';const c=e[key];let hi=true,lo=true;
+function ext(code,l,key){const m=S[code];if(!m)return'';const e=m[l];if(!e||e[key]==null)return'';const c=e[key];let hi=c>=0,lo=true;
   for(let k=1;k<8;k++){const p=m[shift(l,-k)];if(!p||p[key]==null)return'';if(!(c>p[key]))hi=false;if(!(c<p[key]))lo=false}
   return hi?'H':lo?'L':''}
 const dot=(c,s,t)=>`<span class="dot ${c}${s?' s':''}" title="${t}" aria-label="${t}"></span>`;
 function dots(g,o){
   if(g&&g===o)return g==='H'?dot('dr',1,'兩率創近8季新高'):dot('dl',1,'兩率創近8季新低');
   return(g?dot(g==='H'?'dy':'db',0,'毛利率創近8季'+(g==='H'?'新高':'新低')):'')+(o?dot(o==='H'?'do':'dg',0,'營業利益率創近8季'+(o==='H'?'新高':'新低')):'')}
+function hiNote(code,P,key){
+  let n=1;while(ext(code,shift(P,-n),key)==='H')n++;
+  if(n>1)return'連 '+n+' 季新高';
+  for(let d=2;d<=8;d++)if(ext(code,shift(P,-d),key)==='H')return'隔'+(d-1)+'季新高';
+  return'首次新高'}
+function mkCell(x,P){
+  const d=dots(x.eg,x.eo);if(!d)return'';const t=[];
+  if(x.eg==='H')t.push('毛: '+hiNote(x.code,P,'gm'));
+  if(x.eo==='H')t.push('營: '+hiNote(x.code,P,'om'));
+  return`<div class="mkc"><span>${d}</span>${t.length?`<span class="mkt">${t.map(s=>`<div>${s}</div>`).join('')}</span>`:''}</div>`}
 function rank(x){const g=x.eg,o=x.eo;
   if(g==='H'&&o==='H')return 7;if(g==='H')return 6;if(o==='H')return 5;
   if(g==='L'&&o==='L')return 1;if(g==='L')return 2;if(o==='L')return 3;return 4}
@@ -130,10 +141,10 @@ function chg(v){if(v==null)return'<span class="na">—</span>';
   return`<span class="${v>0?'up':v<0?'down':'na'}">${v>0?'+':''}${v.toFixed(1)}</span>`}
 const CW=640,CH=360;
 function chartSVG(code,P){
-  const W=CW,H=CH,L=52,Rt=14,T=40,n=8,RH=22,TT=H-3*RH-6,PB=TT-12,sp=(W-L-Rt)/n,m=S[code]||{};
-  const pts=[...Array(n)].map((_,i)=>{const l=shift(P,i-7),e=m[l];return{l,gm:e?e.gm:null,om:e?e.om:null,ap:!!(e&&e.approx),eg:ext(code,l,'gm'),eo:ext(code,l,'om')}});
+  const W=CW,H=CH,L=52,Rt=14,T=40,n=9,RH=22,TT=H-3*RH-6,PB=TT-12,sp=(W-L-Rt)/n,m=S[code]||{};
+  const pts=[...Array(n)].map((_,i)=>{const l=shift(P,i-8),e=m[l];return{l,gm:e?e.gm:null,om:e?e.om:null,ap:!!(e&&e.approx),eg:ext(code,l,'gm'),eo:ext(code,l,'om')}});
   const vals=pts.flatMap(p=>[p.gm,p.om]).filter(v=>v!=null);
-  if(!vals.length)return`<p class="na" style="padding:12px">近 8 季沒有可畫圖的資料。</p>`;
+  if(!vals.length)return`<p class="na" style="padding:12px">近 9 季沒有可畫圖的資料。</p>`;
   const pad=(Math.max(...vals)-Math.min(...vals))*.12||5,lo=Math.min(...vals)-pad,hi=Math.max(...vals)+pad;
   const X=i=>L+sp*(i+.5),Y=v=>T+(hi-v)/(hi-lo)*(PB-T),dec=hi-lo>20?0:1;
   let g='';for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4;g+=`<line class="grid" x1="${L}" x2="${W-Rt}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v.toFixed(dec)}%</text>`}
@@ -156,18 +167,18 @@ function chartSVG(code,P){
       tb+=`<text x="${X(i)}" y="${TT+r*RH+15}" text-anchor="middle" style="${st};font-size:12px">${v==null?'—':(p.ap?'≈':'')+v.toFixed(1)+'%'}</text>`})});
   const lg=`<line class="l1" x1="${L}" x2="${L+18}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+23}" y="18">毛利率</text><line class="l2" x1="${L+84}" x2="${L+102}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+107}" y="18">營業利益率</text>
 <circle class="ringH" cx="${W-150}" cy="14" r="6"/><text x="${W-139}" y="18">創8季新高</text><circle class="ringL" cx="${W-70}" cy="14" r="6"/><text x="${W-59}" y="18">新低</text>`;
-  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc((info[code]||{}).name||code)}近8季毛利率與營業利益率趨勢圖與數值表">${lg}${g}${line('gm','l1','eg')}${line('om','l2','eo')}${tb}</svg>`}
+  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc((info[code]||{}).name||code)}近9季毛利率與營業利益率趨勢圖與數值表">${lg}${g}${line('gm','l1','eg')}${line('om','l2','eo')}${tb}</svg>`}
 function setPressed(id,v){const b=document.querySelector('.ico[data-chart="'+id+'"]');if(b)b.setAttribute('aria-pressed',String(v))}
 function closeWin(id){const w=wins.get(id);if(!w)return;w.remove();wins.delete(id);setPressed(id,false)}
 function openWin(id){
   if(wins.has(id)){closeWin(id);return}
   const mobile=innerWidth<720;if(mobile)[...wins.keys()].forEach(closeWin);
-  const [code,P]=id.split('|'),n=wins.size,w=Math.min(760,innerWidth-24);
+  const [code,P]=id.split('|'),n=wins.size,w=Math.min(580,innerWidth-24);
   const el=document.createElement('div');el.className='win';el.style.zIndex=++zTop;
   el.style.width=w+'px';el.style.height=Math.round(w*CH/CW)+52+'px';
   el.style.left=Math.max(8,Math.min(innerWidth-w-8,140+n*28))+'px';el.style.top=Math.max(8,80+n*28)+'px';
   const nm=esc((info[code]||{}).name||code);
-  el.innerHTML=`<div class="wh"><span><b>${nm}</b> ${code}　近 8 季單季（${shift(P,-7).slice(0,4)} Q${shift(P,-7)[5]} 至 ${P.slice(0,4)} Q${P[5]}）</span><button class="x" aria-label="關閉">×</button></div><div class="wb">${chartSVG(code,P)}</div>`;
+  el.innerHTML=`<div class="wh"><span><b>${nm}</b> ${code}　近 9 季單季（${shift(P,-8).slice(0,4)} Q${shift(P,-8)[5]} 至 ${P.slice(0,4)} Q${P[5]}）</span><button class="x" aria-label="關閉">×</button></div><div class="wb">${chartSVG(code,P)}</div>`;
   const hd=el.querySelector('.wh');
   el.addEventListener('pointerdown',()=>{el.style.zIndex=++zTop});
   el.querySelector('.x').addEventListener('click',()=>closeWin(id));
@@ -181,7 +192,7 @@ function render(){
   const P=$('#date').value,s=$('#q').value.trim();
   const codes=Object.keys(info).filter(c=>R[c+'|'+P]||(S[c]&&S[c][P]));
   const hf=$('#hi').value;
-  let rows=codes.map(c=>build(c,P)).filter(x=>(!s||x.code.includes(s)||(x.inf.name||'').includes(s))&&(hf==='all'||(hf[0]==='g'&&x.eg===hf[1])||(hf[0]==='o'&&x.eo===hf[1])||(hf[0]==='b'&&x.eg===hf[1]&&x.eo===hf[1])));
+  let rows=codes.map(c=>build(c,P)).filter(x=>(!s||x.code.includes(s)||(x.inf.name||'').includes(s))&&(hf==='all'||(hf==='any'&&(x.eg==='H'||x.eo==='H'))||(hf==='gH'&&x.eg==='H')||(hf==='oH'&&x.eo==='H')||(hf==='bH'&&x.eg==='H'&&x.eo==='H')));
   rows.sort((a,b)=>{let x,y;
     if(sk==='announced'){x=a.rec&&a.rec.announced;y=b.rec&&b.rec.announced}
     else if(sk==='code'){x=a.code;y=b.code}else if(sk==='mk'){x=rank(a);y=rank(b)}else{x=a[sk];y=b[sk]}
@@ -195,8 +206,8 @@ function render(){
   msg.hidden=true;
   $('#tb').innerHTML=rows.map(x=>{const r=x.rec,id=x.code+'|'+P,det=openId===id,ap=x.cur&&x.cur.approx;
     const t=r?(r.announced?r.announced.slice(5,16):'<span class="na">較早公告</span>'):'<span class="na">—</span>';
-    return`<tr class="row" data-id="${id}"><td>${t}</td><td class="mk">${dots(x.eg,x.eo)}</td>
-<td><b>${esc(x.inf.name||'')}</b><span class="code">${x.code}</span><button class="ico" data-chart="${id}" aria-pressed="${wins.has(id)}" title="看近8季毛利率與營益率趨勢圖" aria-label="趨勢圖"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"><path d="M2 13V3M2 13h12M4.5 10l3-3.5 2.5 2L14 4"/></svg></button><span class="tag">${x.inf.market||''}${x.inf.industry?'・'+esc(x.inf.industry):''}${r&&r.kind?'・'+r.kind:''}</span></td>
+    return`<tr class="row" data-id="${id}"><td>${t}</td><td class="mk">${mkCell(x,P)}</td>
+<td><b>${esc(x.inf.name||'')}</b><span class="code">${x.code}</span><button class="ico" data-chart="${id}" aria-pressed="${wins.has(id)}" title="看近9季毛利率與營益率趨勢圖" aria-label="趨勢圖"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"><path d="M2 13V3M2 13h12M4.5 10l3-3.5 2.5 2L14 4"/></svg></button><span class="tag">${x.inf.market||''}${x.inf.industry?'・'+esc(x.inf.industry):''}${r&&r.kind?'・'+r.kind:''}</span></td>
 <td class="r">${cell(x.gm,x.fin,ap)}</td><td class="r">${cell(x.om,x.fin,ap)}</td><td class="r">${chg(x.yoy)}</td><td class="r">${chg(x.qoq)}</td>
 </tr>`+
 (det?`<tr class="detail"><td colspan="7">${r?`<span>營業收入 ${r.rev==null?'—':r.rev.toLocaleString()}</span><span>營業毛利 ${r.gp==null?'—':r.gp.toLocaleString()}</span><span>營業利益 ${r.op==null?'—':r.op.toLocaleString()}</span><span>單位：仟元（年初累計）</span><br>${esc(r.subject||'')}`:'此期間沒有近期公告的累計金額；數字來自 XQ 歷史資料。'}</td></tr>`:'')}).join('')}
