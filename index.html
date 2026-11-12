@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>財報公告追蹤｜毛利率與營業利益率</title>
 <style>
-:root{--cy:#e2b100;--co:#f08a24;--cr:#d62828;--cb:#2f6fe4;--cg:#0a6b46;--cl:#2ecc71;--ln1:#7c3aed;--ln2:#64748b;--bg:#f2f4f6;--panel:#fff;--ink:#16212b;--sub:#5b6875;--line:#dfe4e9;--bar:#2f6f8f;--bar-bg:#e6ecf0;--up:#c62828;--down:#1b7f3b;--hover:#f6f8fa}
-@media (prefers-color-scheme:dark){:root{--cy:#ffd43b;--co:#ffa94d;--cr:#ff6b6b;--cb:#74a9ff;--cg:#3fbf8f;--cl:#69f0ae;--ln1:#a78bfa;--ln2:#94a3b8;--bg:#10161c;--panel:#18212a;--ink:#e8edf1;--sub:#93a1ad;--line:#2a3640;--bar:#6bb3d3;--bar-bg:#263540;--up:#ff6b6b;--down:#4cc67a;--hover:#1d2832}}
+:root{--neg:#ffe8a3;--cy:#e2b100;--co:#f08a24;--cr:#d62828;--cb:#2f6fe4;--cg:#0a6b46;--cl:#2ecc71;--ln1:#7c3aed;--ln2:#64748b;--bg:#f2f4f6;--panel:#fff;--ink:#16212b;--sub:#5b6875;--line:#dfe4e9;--bar:#2f6f8f;--bar-bg:#e6ecf0;--up:#c62828;--down:#1b7f3b;--hover:#f6f8fa}
+@media (prefers-color-scheme:dark){:root{--neg:#5c4710;--cy:#ffd43b;--co:#ffa94d;--cr:#ff6b6b;--cb:#74a9ff;--cg:#3fbf8f;--cl:#69f0ae;--ln1:#a78bfa;--ln2:#94a3b8;--bg:#10161c;--panel:#18212a;--ink:#e8edf1;--sub:#93a1ad;--line:#2a3640;--bar:#6bb3d3;--bar-bg:#263540;--up:#ff6b6b;--down:#4cc67a;--hover:#1d2832}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
 main{max-width:1000px;margin:0 auto;padding:24px 16px 48px}
@@ -39,6 +39,7 @@ tr.row:hover{background:var(--hover)}
 .detail span{margin-right:22px;white-space:nowrap}
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:2.5px solid var(--dc);margin:0 2px;vertical-align:middle;box-sizing:border-box;background:transparent}
 .dot.s{background:var(--dc)}.dy{--dc:var(--cy)}.do{--dc:var(--co)}.dr{--dc:var(--cr)}.db{--dc:var(--cb)}.dg{--dc:var(--cg)}.dl{--dc:var(--cl)}
+select:disabled{opacity:.5;cursor:not-allowed}
 td.mk,th.mk{text-align:left;padding-left:10px;padding-right:6px;white-space:nowrap}
 .mkc{display:flex;align-items:center;gap:6px}.mkt{font-size:12px;color:var(--sub);line-height:1.35}
 .ico{border:0;background:none;padding:2px 4px;margin-left:6px;cursor:pointer;color:var(--sub);vertical-align:middle;border-radius:4px}
@@ -48,7 +49,7 @@ td.mk,th.mk{text-align:left;padding-left:10px;padding-right:6px;white-space:nowr
 .x{border:0;background:none;color:var(--sub);font-size:20px;line-height:1;width:28px;height:26px;border-radius:4px;cursor:pointer}
 .x:hover{background:var(--cr);color:#fff}
 .wb{flex:1;min-height:0;padding:4px 6px}.wb svg{width:100%;height:100%;display:block}
-.wb text{fill:var(--sub);font-size:11px}.wb .grid{stroke:var(--line);stroke-width:1}.wb .zero{stroke:var(--sub);stroke-dasharray:3 3}
+.wb text{fill:var(--sub);font-size:11px}.wb .grid{stroke:var(--line);stroke-width:1}.wb .negbg{fill:var(--neg)}.wb .zero{stroke:var(--sub);stroke-dasharray:3 3}
 .wb .rl1{fill:var(--ln1)}.wb .rl2{fill:var(--ln2)}.wb .l1{stroke:var(--ln1)}.wb .l2{stroke:var(--ln2)}.wb path.l1,.wb path.l2{fill:none;stroke-width:2.2}
 .wb circle.l1{fill:var(--ln1)}.wb circle.l2{fill:var(--ln2)}.wb .ringH{fill:none;stroke:var(--cr);stroke-width:2}.wb .ringL{fill:none;stroke:var(--cg);stroke-width:2}
 @media(max-width:720px){.win{left:0!important;right:0;top:auto!important;bottom:0;width:100%!important;height:56vh!important;resize:none;border-radius:10px 10px 0 0}.wh{cursor:default}}
@@ -62,6 +63,7 @@ td.mk,th.mk{text-align:left;padding-left:10px;padding-right:6px;white-space:nowr
   <p class="sub" id="meta">載入中…</p>
   <div class="bar">
     <label>財報期間 <select id="date"></select></label>
+    <label>至少隔幾季 <select id="gap" disabled><option value="all">All</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label>
     <label>新高 <select id="hi"><option value="all">全部</option><option value="any">任一率新高</option><option value="gH">毛利率新高</option><option value="oH">營益率新高</option><option value="bH">兩率新高</option></select></label>
     <div class="seg" role="group" aria-label="數字基準">
       <button type="button" data-b="single" aria-pressed="true">單季</button>
@@ -85,7 +87,7 @@ td.mk,th.mk{text-align:left;padding-left:10px;padding-right:6px;white-space:nowr
     </table>
     <div class="msg" id="msg" hidden></div>
   </div>
-  <p class="note">「毛/營」欄是近 8 季（含當季）的新高／新低標記，以單季數字比較，當季須嚴格高於（低於）前 7 季，8 季資料齊全才判斷，與單季／累計切換無關，金融保險業不判斷；<b>新高另外要求數值 ≥ 0</b>。第 1 個是毛利率、第 2 個是營業利益率，兩率同向時合併成一個實心圓：<span class="dot dy"></span>毛利率新高 <span class="dot do"></span>營益率新高 <span class="dot dr s"></span>兩率新高 <span class="dot db"></span>毛利率新低 <span class="dot dg"></span>營益率新低 <span class="dot dl s"></span>兩率新低。新高後面的文字說明前面的新高：「首次新高」＝往前 8 季內沒有新高，「連 N 季新高」＝含當季連續 N 季新高，「隔 N 季新高」＝上一次新高在 N+1 季前。歷史資料不足時只能看到有資料的季度。點公司旁的折線圖示開啟近 9 季趨勢圖，可拖曳標題列移動、拖右下角縮放。單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
+  <p class="note">「毛/營」欄是近 8 季（含當季）的新高／新低標記，以單季數字比較，當季須嚴格高於（低於）前 7 季，8 季資料齊全才判斷，與單季／累計切換無關，金融保險業不判斷；<b>新高另外要求數值 ≥ 0</b>。第 1 個是毛利率、第 2 個是營業利益率，兩率同向時合併成一個實心圓：<span class="dot dy"></span>毛利率新高 <span class="dot do"></span>營益率新高 <span class="dot dr s"></span>兩率新高 <span class="dot db"></span>毛利率新低 <span class="dot dg"></span>營益率新低 <span class="dot dl s"></span>兩率新低。新高後面的文字說明前面的新高：「首次新高」＝往前 8 季內沒有新高，「連 N 季新高」＝含當季連續 N 季新高，「隔 N 季新高」＝上一次新高在 N+1 季前。歷史資料不足時只能看到有資料的季度。「至少隔幾季」只在「新高」選了某一種新高時可用：0＝連續新高，N＝上一次新高在 N+1 季前，首次新高視為間隔無限大；毛利率、營益率各自計算間隔，「任一率新高」是其中一個符合就算，「兩率新高」是兩個都要符合。趨勢圖數值表裡，負數的格子以琥珀色底色標示。點公司旁的折線圖示開啟近 9 季趨勢圖，可拖曳標題列移動、拖右下角縮放。單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
 </main>
 <script>
 const $=s=>document.querySelector(s);
@@ -111,6 +113,11 @@ const dot=(c,s,t)=>`<span class="dot ${c}${s?' s':''}" title="${t}" aria-label="
 function dots(g,o){
   if(g&&g===o)return g==='H'?dot('dr',1,'兩率創近8季新高'):dot('dl',1,'兩率創近8季新低');
   return(g?dot(g==='H'?'dy':'db',0,'毛利率創近8季'+(g==='H'?'新高':'新低')):'')+(o?dot(o==='H'?'do':'dg',0,'營業利益率創近8季'+(o==='H'?'新高':'新低')):'')}
+function gapOf(code,P,key){
+  if(ext(code,shift(P,-1),key)==='H')return 0;
+  for(let d=2;d<=8;d++)if(ext(code,shift(P,-d),key)==='H')return d-1;
+  return Infinity}
+function syncGap(){const a=$('#hi').value==='all';$('#gap').disabled=a;if(a)$('#gap').value='all'}
 function hiNote(code,P,key){
   let n=1;while(ext(code,shift(P,-n),key)==='H')n++;
   if(n>1)return'連 '+n+' 季新高';
@@ -133,7 +140,7 @@ function build(code,P){
     if(cur){yoy=y?d(cur.gm,y.gm):null;qoq=q?d(cur.gm,q.gm):null}}
   else if(rec)cur={gm:ratio(rec.gp,rec.rev),om:ratio(rec.op,rec.rev),approx:false};
   const eg=fin?'':ext(code,P,'gm'),eo=fin?'':ext(code,P,'om');
-  return{code,rec,inf,fin,cur,gm:cur?cur.gm:null,om:cur?cur.om:null,yoy,qoq,eg,eo}}
+  return{code,rec,inf,fin,cur,gm:cur?cur.gm:null,om:cur?cur.om:null,yoy,qoq,eg,eo,gg:eg==='H'?gapOf(code,P,'gm'):null,go:eo==='H'?gapOf(code,P,'om'):null}}
 function cell(v,fin,approx){if(fin)return'<span class="na">不適用</span>';if(v==null)return'<span class="na">—</span>';
   const w=Math.max(0,Math.min(v,60))/60*100;
   return`<span class="m">${approx?'≈':''}${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
@@ -164,6 +171,7 @@ function chartSVG(code,P){
   pts.forEach((p,i)=>{
     tb+=`<text x="${X(i)}" y="${TT+15}" text-anchor="middle" style="fill:var(--ink)">${p.l.slice(2,4)}Q${p.l[5]}</text>`;
     [['gm','eg',1],['om','eo',2]].forEach(([k,ek,r])=>{const v=p[k],st=p[ek]==='H'?'fill:var(--cr);font-weight:700':p[ek]==='L'?'fill:var(--cg);font-weight:700':'fill:var(--ink)';
+      if(v!=null&&v<0)tb+=`<rect class="negbg" x="${X(i)-sp/2+1}" y="${TT+r*RH+1}" width="${sp-2}" height="${RH-2}"/>`;
       tb+=`<text x="${X(i)}" y="${TT+r*RH+15}" text-anchor="middle" style="${st};font-size:12px">${v==null?'—':(p.ap?'≈':'')+v.toFixed(1)+'%'}</text>`})});
   const lg=`<line class="l1" x1="${L}" x2="${L+18}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+23}" y="18">毛利率</text><line class="l2" x1="${L+84}" x2="${L+102}" y1="14" y2="14" stroke-width="2.2"/><text x="${L+107}" y="18">營業利益率</text>
 <circle class="ringH" cx="${W-150}" cy="14" r="6"/><text x="${W-139}" y="18">創8季新高</text><circle class="ringL" cx="${W-70}" cy="14" r="6"/><text x="${W-59}" y="18">新低</text>`;
@@ -191,8 +199,8 @@ function openWin(id){
 function render(){
   const P=$('#date').value,s=$('#q').value.trim();
   const codes=Object.keys(info).filter(c=>R[c+'|'+P]||(S[c]&&S[c][P]));
-  const hf=$('#hi').value;
-  let rows=codes.map(c=>build(c,P)).filter(x=>(!s||x.code.includes(s)||(x.inf.name||'').includes(s))&&(hf==='all'||(hf==='any'&&(x.eg==='H'||x.eo==='H'))||(hf==='gH'&&x.eg==='H')||(hf==='oH'&&x.eo==='H')||(hf==='bH'&&x.eg==='H'&&x.eo==='H')));
+  const hf=$('#hi').value,gv=$('#gap').value,N=gv==='all'?0:+gv,okG=x=>x.eg==='H'&&x.gg>=N,okO=x=>x.eo==='H'&&x.go>=N;
+  let rows=codes.map(c=>build(c,P)).filter(x=>(!s||x.code.includes(s)||(x.inf.name||'').includes(s))&&(hf==='all'||(hf==='any'&&(okG(x)||okO(x)))||(hf==='gH'&&okG(x))||(hf==='oH'&&okO(x))||(hf==='bH'&&okG(x)&&okO(x))));
   rows.sort((a,b)=>{let x,y;
     if(sk==='announced'){x=a.rec&&a.rec.announced;y=b.rec&&b.rec.announced}
     else if(sk==='code'){x=a.code;y=b.code}else if(sk==='mk'){x=rank(a);y=rank(b)}else{x=a[sk];y=b[sk]}
@@ -217,11 +225,12 @@ document.querySelectorAll('th').forEach(h=>{const f=()=>{const k=h.dataset.k;if(
   h.onclick=f;h.onkeydown=e=>{if(e.key==='Enter')f()}});
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{basis=b.dataset.b;
   document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
-$('#date').onchange=render;$('#hi').onchange=render;$('#q').oninput=render;
+$('#date').onchange=render;$('#hi').onchange=()=>{syncGap();render()};$('#gap').onchange=render;$('#q').oninput=render;
 const getJ=(u,opt)=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(u+' HTTP '+r.status);return r.json()}).catch(e=>{if(opt)return null;throw e});
 Promise.all([getJ('data/earnings.json'),getJ('data/history.json',true)]).then(([j,h])=>{
   recs=j.records;hist=(h&&h.companies)||{};prepare();
   const ls=labels(),latest=recs.map(r=>r.year+'Q'+r.quarter).sort().reverse()[0]||ls[0];
+  syncGap();
   $('#date').innerHTML=ls.map(l=>`<option value="${l}"${l===latest?' selected':''}>${l.slice(0,4)} Q${l[5]}</option>`).join('');
   $('#meta').textContent=`資料更新時間 ${j.updated_at}　近期公告 ${recs.length} 筆　歷史資料 ${Object.keys(hist).length} 家`;
   try{render()}catch(e){console.error(e);$('#meta').textContent='';const m=$('#msg');m.hidden=false;m.textContent='資料已讀取，但畫面產生時出錯：'+e.message}
