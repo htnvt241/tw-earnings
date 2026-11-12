@@ -34,6 +34,7 @@ tr.row:hover{background:var(--hover)}
 .m{display:inline-block;min-width:54px;text-align:right}
 .track{display:inline-block;width:56px;height:6px;margin-left:8px;border-radius:3px;background:var(--bar-bg);vertical-align:middle;overflow:hidden}
 .track i{display:block;height:100%;background:var(--bar)}
+.rc{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.rc .m{min-width:0}.rc .track{display:block;margin-left:0}
 .up{color:var(--up)}.down{color:var(--down)}.na{color:var(--sub)}
 .detail td{background:var(--hover);font-size:13px;color:var(--sub)}
 .detail span{margin-right:22px;white-space:nowrap}
@@ -143,7 +144,7 @@ function build(code,P){
   return{code,rec,inf,fin,cur,gm:cur?cur.gm:null,om:cur?cur.om:null,yoy,qoq,eg,eo,gg:eg==='H'?gapOf(code,P,'gm'):null,go:eo==='H'?gapOf(code,P,'om'):null}}
 function cell(v,fin,approx){if(fin)return'<span class="na">不適用</span>';if(v==null)return'<span class="na">—</span>';
   const w=Math.max(0,Math.min(v,60))/60*100;
-  return`<span class="m">${approx?'≈':''}${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span>`}
+  return`<div class="rc"><span class="m">${approx?'≈':''}${pct(v)}</span><span class="track"><i style="width:${w}%"></i></span></div>`}
 function chg(v){if(v==null)return'<span class="na">—</span>';
   return`<span class="${v>0?'up':v<0?'down':'na'}">${v>0?'+':''}${v.toFixed(1)}</span>`}
 const CW=640,CH=360;
