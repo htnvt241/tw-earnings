@@ -104,7 +104,7 @@ function prepare(){
     h.g.forEach((g,k)=>{const o=h.o[k];if(g!=null||o!=null)S[c][shift(h.l,-k)]={gm:g,om:o,approx:false}})});
   recs.forEach(r=>{const l=r.year+'Q'+r.quarter;R[r.code+'|'+l]=r;
     info[r.code]=Object.assign({industry:''},info[r.code],{name:r.name,market:r.market});
-    if(r.q){S[r.code]=S[r.code]||{};S[r.code][l]={gm:ratio(r.q.gp,r.q.rev),om:ratio(r.q.op,r.q.rev),approx:!!r.q.approx}}})}
+    if(r.q&&!(r.q.approx&&S[r.code]&&S[r.code][l])){S[r.code]=S[r.code]||{};S[r.code][l]={gm:ratio(r.q.gp,r.q.rev),om:ratio(r.q.op,r.q.rev),approx:!!r.q.approx}}})}
 function labels(){const s=new Set(recs.map(r=>r.year+'Q'+r.quarter));
   Object.values(S).forEach(m=>Object.keys(m).forEach(l=>s.add(l)));return[...s].sort().reverse()}
 function ext(code,l,key){const m=S[code];if(!m)return'';const e=m[l];if(!e||e[key]==null)return'';const c=e[key];let hi=c>=0,lo=true;
