@@ -88,7 +88,7 @@ td.mk,th.mk{text-align:left;padding-left:10px;padding-right:6px;white-space:nowr
     </table>
     <div class="msg" id="msg" hidden></div>
   </div>
-  <p class="note">「毛/營」欄是近 8 季（含當季）的新高／新低標記，以單季數字比較，當季須嚴格高於（低於）前 7 季，8 季資料齊全才判斷，與單季／累計切換無關，金融保險業不判斷；<b>新高另外要求數值 ≥ 0</b>。第 1 個是毛利率、第 2 個是營業利益率，兩率同向時合併成一個實心圓：<span class="dot dy"></span>毛利率新高 <span class="dot do"></span>營益率新高 <span class="dot dr s"></span>兩率新高 <span class="dot db"></span>毛利率新低 <span class="dot dg"></span>營益率新低 <span class="dot dl s"></span>兩率新低。新高後面的文字說明前面的新高：「首次新高」＝往前 8 季內沒有新高，「連 N 季新高」＝含當季連續 N 季新高，「隔 N 季新高」＝上一次新高在 N+1 季前。歷史資料不足時只能看到有資料的季度。「至少隔幾季」只在「新高」選了某一種新高時可用：0＝連續新高，N＝上一次新高在 N+1 季前，首次新高視為間隔無限大；毛利率、營益率各自計算間隔，「任一率新高」是其中一個符合就算，「兩率新高」是兩個都要符合。趨勢圖數值表裡，負數的格子以琥珀色底色標示。點公司旁的折線圖示開啟近 9 季趨勢圖，可拖曳標題列移動、拖右下角縮放。單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業沒有營業毛利，顯示「不適用」。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
+  <p class="note">「毛/營」欄是近 8 季（含當季）的新高／新低標記，以單季數字比較，當季須嚴格高於（低於）前 7 季，8 季資料齊全才判斷，與單季／累計切換無關；<b>新高另外要求數值 ≥ 0</b>。第 1 個是毛利率、第 2 個是營業利益率，兩率同向時合併成一個實心圓：<span class="dot dy"></span>毛利率新高 <span class="dot do"></span>營益率新高 <span class="dot dr s"></span>兩率新高 <span class="dot db"></span>毛利率新低 <span class="dot dg"></span>營益率新低 <span class="dot dl s"></span>兩率新低。新高後面的文字說明前面的新高：「首次新高」＝往前 8 季內沒有新高，「連 N 季新高」＝含當季連續 N 季新高，「隔 N 季新高」＝上一次新高在 N+1 季前。歷史資料不足時只能看到有資料的季度。「至少隔幾季」只在「新高」選了某一種新高時可用：0＝連續新高，N＝上一次新高在 N+1 季前，首次新高視為間隔無限大；毛利率、營益率各自計算間隔，「任一率新高」是其中一個符合就算，「兩率新高」是兩個都要符合。趨勢圖數值表裡，負數的格子以琥珀色底色標示。點公司旁的折線圖示開啟近 9 季趨勢圖，可拖曳標題列移動、拖右下角縮放。單季為該季單獨的數字，累計為年初到該季末的合計（累計只有近期公告的季別才有）。「較去年同期」「較上季」是單季毛利率的百分點變化，紅色上升、綠色下降。「≈」表示單季由累計數字推算，小公司可能有些微誤差。毛利率＝營業毛利（毛損）÷營業收入。金融保險業（銀行、保險、證券、金控等）沒有營業毛利，本網站不列入。歷史資料來自 XQ，近期公告來自公開資訊觀測站與證交所、櫃買中心 OpenAPI。</p>
 </main>
 <script>
 const $=s=>document.querySelector(s);
@@ -199,7 +199,7 @@ function openWin(id){
   document.body.appendChild(el);wins.set(id,el);setPressed(id,true)}
 function render(){
   const P=$('#date').value,s=$('#q').value.trim();
-  const codes=Object.keys(info).filter(c=>R[c+'|'+P]||(S[c]&&S[c][P]));
+  const codes=Object.keys(info).filter(c=>(R[c+'|'+P]||(S[c]&&S[c][P]))&&!/金融/.test(info[c].industry||''));
   const hf=$('#hi').value,gv=$('#gap').value,N=gv==='all'?0:+gv,okG=x=>x.eg==='H'&&x.gg>=N,okO=x=>x.eo==='H'&&x.go>=N;
   let rows=codes.map(c=>build(c,P)).filter(x=>(!s||x.code.includes(s)||(x.inf.name||'').includes(s))&&(hf==='all'||(hf==='any'&&(okG(x)||okO(x)))||(hf==='gH'&&okG(x))||(hf==='oH'&&okO(x))||(hf==='bH'&&okG(x)&&okO(x))));
   rows.sort((a,b)=>{let x,y;
